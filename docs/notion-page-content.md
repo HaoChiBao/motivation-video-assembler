@@ -3,7 +3,7 @@
 </callout>
 
 <callout icon="📌" color="blue_bg">
-**Status — July 5, 2026:** Phase 1 + clip database shipped. Transcript-synced **Studio** for manual clipping, indexed **Database** with tags/search/local save, AI auto-clip still available. Next: montage export + E2E QA.
+**Status — July 5, 2026:** Phase 1.5 shipped. **Wispr Flow** UI, **ClipTimeline** dual-bar scrubber, **GPT-5.5** analysis with retry/logging, optional AI on import, re-run AI on any saved video. Next: montage export + full E2E QA on 3 speeches.
 </callout>
 
 <table_of_contents/>
@@ -16,8 +16,8 @@
 	<column>
 		<callout icon="🐙" color="gray_bg">
 			**GitHub**
-			motivation-video-assembler
-			Python · FastAPI · OpenAI · ffmpeg
+			https://github.com/HaoChiBao/motivation-video-assembler
+			Python · FastAPI · GPT-5.5 · ffmpeg
 		</callout>
 	</column>
 	<column>
@@ -57,12 +57,19 @@ Motivation Video Assembler is a local-first pipeline for turning long motivation
 - FastAPI backend with job polling
 - Product UI: Analyze + Studio + Database
 
-### Phase 1.5 — Clip database (shipped)
+### Phase 1.5 — Clip database + Studio (shipped)
 - Indexed clip store (`data/database/index.json`)
-- Manual clipping in Studio synced to transcript timestamps
+- Manual clipping in Studio with **ClipTimeline** (playhead bar + clip-range sub-bar)
+- Transcript-synced in/out, shift+click range selection
 - Tags, categories, search, metadata editing
 - Local save to `data/database/clips/` + browser download
-- AI auto-clip + manual clip coexist in one index
+- AI auto-clip optional on import; re-run AI on any prepared video
+- Structured job logs (`data/logs/jobs/`) + UI log panels
+
+### Phase 2 — Observability + AI hardening (shipped)
+- GPT-5.5 default model with `max_completion_tokens` + retry on truncated JSON
+- Per-job JSONL logs, `GET /api/jobs/{id}/logs`
+- AI failures keep video in `prepared` state (manual clip still works)
 
 ### Phase 3 — Assembly
 - Select clips from library → stitch into one export MP4
@@ -217,8 +224,8 @@ flowchart LR
 	</tr>
 	<tr>
 		<td>Design</td>
-		<td>Goated design system</td>
-		<td>See DESIGN.md — cream canvas, moss green, serif display</td>
+		<td>Wispr Flow design system</td>
+		<td>See DESIGN.md — cream #ffffeb, lavender CTA, deep teal, EB Garamond + Figtree</td>
 	</tr>
 </table>
 
@@ -240,22 +247,32 @@ flowchart LR
 	<tr>
 		<td>POST</td>
 		<td>/api/analyze</td>
-		<td>Start job — body: `{ "youtube_url": "..." }`</td>
+		<td>Start job — `{ "youtube_url": "...", "auto_analyze": true }`</td>
 	</tr>
 	<tr>
 		<td>GET</td>
-		<td>/api/jobs</td>
-		<td>List all jobs</td>
+		<td>/api/jobs/studio</td>
+		<td>Prepared videos for Studio</td>
+	</tr>
+	<tr>
+		<td>POST</td>
+		<td>/api/jobs/{id}/analyze-ai</td>
+		<td>Re-run AI analysis — `{ "replace_existing": true }`</td>
+	</tr>
+	<tr>
+		<td>POST</td>
+		<td>/api/jobs/{id}/clips</td>
+		<td>Manual clip from Studio</td>
 	</tr>
 	<tr>
 		<td>GET</td>
-		<td>/api/jobs/{job_id}</td>
-		<td>Job status + clips</td>
+		<td>/api/jobs/{id}/logs</td>
+		<td>Structured job logs (JSONL-backed)</td>
 	</tr>
 	<tr>
 		<td>GET</td>
 		<td>/api/library</td>
-		<td>All clips across jobs</td>
+		<td>Search/filter clip database</td>
 	</tr>
 	<tr>
 		<td>GET</td>
@@ -277,25 +294,37 @@ flowchart LR
 </details>
 
 <details>
-<summary>Library tab</summary>
-	- Left sidebar: category filter pills + clip list rows
-	- Right detail pane: single video player + quote + rationale + source title
-	- Empty state with CTA back to Analyze
+<summary>Studio tab</summary>
+	- Source video picker (any imported/prepared video)
+	- **ClipTimeline:** main playhead bar + clip-range sub-bar with draggable in/out handles
+	- Transcript panel with shift+click range; syncs to timeline
+	- Save clip form (title, category, tags, local save)
+	- Re-run AI analysis; job log panel
 </details>
 
-**UX principles (UIUX_PROMPT.md)**
+<details>
+<summary>Database tab</summary>
+	- Left sidebar: search, category/tag filters, clip list
+	- Right detail pane: video player + quote + metadata + download
+	- Edit title/tags; save to local folder
+</details>
+
+**UX principles (UIUX_PROMPT.md + DESIGN.md)**
 - Product tool, not marketing landing page
-- One player in library (no grid of embedded videos)
-- Segmented nav, tight spacing, scannable metadata
-- Moss green = action; stone grey = structure
+- Wispr Flow: cream canvas, lavender for primary CTA only, teal for progress/badges
+- EB Garamond display headlines; Figtree UI
+- One player in database view; tight spacing, scannable metadata
 
 ---
 
 ## Data model
 
 **Job** (`data/jobs/{id}.json`)
-- id, youtube_url, video_id, status, stage, progress
-- video_title, language, analysis, clips[]
+- id, youtube_url, video_id, status, stage, progress, auto_analyze
+- video_title, language, transcript, analysis, analysis_error, clips[]
+
+**Logs** (`data/logs/jobs/{id}.jsonl`)
+- Structured events: pipeline stages, AI passes, JSON errors with raw preview
 
 **Clip moment**
 - id, group, title, quote, start_seconds, end_seconds
@@ -334,12 +363,32 @@ python -m uvicorn backend.app:app --reload --port 8000
 	<tr>
 		<td>OPENAI_MODEL</td>
 		<td>No</td>
-		<td>Analysis model (default gpt-4o)</td>
+		<td>Default gpt-5.5</td>
 	</tr>
 	<tr>
 		<td>OPENAI_VERIFY_MODEL</td>
 		<td>No</td>
 		<td>Second-pass model</td>
+	</tr>
+	<tr>
+		<td>OPENAI_REASONING_EFFORT</td>
+		<td>No</td>
+		<td>GPT-5.x: none, low, medium, high</td>
+	</tr>
+	<tr>
+		<td>OPENAI_MAX_COMPLETION_TOKENS</td>
+		<td>No</td>
+		<td>Output budget (default 16384)</td>
+	</tr>
+	<tr>
+		<td>LINEAR_API_KEY</td>
+		<td>No</td>
+		<td>For scripts/setup_tracking.py</td>
+	</tr>
+	<tr>
+		<td>NOTION_TOKEN</td>
+		<td>No</td>
+		<td>Notion sync (optional)</td>
 	</tr>
 	<tr>
 		<td>MAX_MOMENTS_PER_GROUP</td>
@@ -396,25 +445,49 @@ python -m uvicorn backend.app:app --reload --port 8000
 		<td>James Yang</td>
 	</tr>
 	<tr>
-		<td>Goated UI overhaul</td>
+		<td>Goated / Wispr Flow UI overhaul</td>
 		<td>Medium</td>
+		<td>Done</td>
+		<td>James Yang</td>
+	</tr>
+	<tr>
+		<td>ClipTimeline dual-bar scrubber</td>
+		<td>High</td>
+		<td>Done</td>
+		<td>James Yang</td>
+	</tr>
+	<tr>
+		<td>Job logging + logs UI</td>
+		<td>Medium</td>
+		<td>Done</td>
+		<td>James Yang</td>
+	</tr>
+	<tr>
+		<td>Optional AI + re-run analysis</td>
+		<td>High</td>
+		<td>Done</td>
+		<td>James Yang</td>
+	</tr>
+	<tr>
+		<td>GPT-5.5 + JSON retry</td>
+		<td>High</td>
 		<td>Done</td>
 		<td>James Yang</td>
 	</tr>
 	<tr>
 		<td>OpenAI + dev env setup</td>
 		<td>High</td>
-		<td>Todo</td>
+		<td>In Progress</td>
 		<td>James Yang</td>
 	</tr>
 	<tr>
-		<td>End-to-end QA (real speeches)</td>
+		<td>End-to-end QA (3 real speeches)</td>
 		<td>Urgent</td>
 		<td>Todo</td>
 		<td>James Yang</td>
 	</tr>
 	<tr>
-		<td>Manual clip boundary editing</td>
+		<td>Re-trim existing database clips</td>
 		<td>Medium</td>
 		<td>Todo</td>
 		<td>James Yang</td>
@@ -456,7 +529,12 @@ python -m uvicorn backend.app:app --reload --port 8000
 	<tr>
 		<td>No YouTube captions</td>
 		<td>Pipeline fails at transcript</td>
-		<td>Clear error + future Whisper fallback</td>
+		<td>Whisper fallback via OpenAI (shipped)</td>
+	</tr>
+	<tr>
+		<td>GPT-5.5 JSON truncation</td>
+		<td>AI analysis fails mid-response</td>
+		<td>max_completion_tokens + retry + job logs (shipped)</td>
 	</tr>
 	<tr>
 		<td>LLM timestamp drift</td>
@@ -492,7 +570,9 @@ frontend/
   index.html
   styles.css
   app.js
-data/          # runtime — jobs, clips, videos
+  clip-timeline.js
+data/          # runtime — jobs, clips, videos, logs, database
 DESIGN.md
 UIUX_PROMPT.md
+scripts/setup_tracking.py
 ```

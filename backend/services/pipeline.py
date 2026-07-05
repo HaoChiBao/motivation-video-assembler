@@ -9,10 +9,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from backend.config import JOBS_DIR, VIDEOS_DIR
+from backend.config import CLIPS_DIR, JOBS_DIR
 from backend.services.analyzer import AnalysisError, analyze_moments
 from backend.services.clipper import VideoError, download_video, extract_clip, get_video_duration, get_source_video_path
-from backend.services.database import register_clip, save_clip_to_disk
+from backend.services.database import delete_clips_for_job, register_clip, save_clip_to_disk
+from backend.services.job_logs import log_job
 from backend.services.transcript import (
     TranscriptError,
     dicts_to_segments,
@@ -47,6 +48,7 @@ def create_job(youtube_url: str, *, auto_analyze: bool = True) -> dict[str, Any]
         "transcript": [],
         "source_video_path": None,
         "analysis": None,
+        "analysis_error": None,
         "clips": [],
         "auto_analyze": auto_analyze,
     }
@@ -55,13 +57,19 @@ def create_job(youtube_url: str, *, auto_analyze: bool = True) -> dict[str, Any]
         _jobs[job_id] = job
         _persist_job(job)
 
+    log_job(job_id, "info", "job_created", "Import job queued", details={"auto_analyze": auto_analyze})
     thread = threading.Thread(target=_run_pipeline, args=(job_id,), daemon=True)
     thread.start()
     return job
 
 
-def run_ai_analysis(job_id: str) -> None:
-    thread = threading.Thread(target=_run_ai_pass, args=(job_id,), daemon=True)
+def run_ai_analysis(job_id: str, *, replace_existing: bool = True) -> None:
+    thread = threading.Thread(
+        target=_run_ai_pass,
+        kwargs={"replace_existing": replace_existing},
+        args=(job_id,),
+        daemon=True,
+    )
     thread.start()
 
 
@@ -174,16 +182,27 @@ def _run_pipeline(job_id: str) -> None:
         if not job:
             return
 
-        _update(job_id, status="running", stage="parsing_url", progress=5)
+        _update(job_id, status="running", stage="parsing_url", progress=5, error=None, analysis_error=None)
+        log_job(job_id, "info", "stage_started", "Parsing YouTube URL")
         video_id = extract_video_id(job["youtube_url"])
         _update(job_id, video_id=video_id, stage="downloading_video", progress=20)
+        log_job(job_id, "info", "stage_started", "Downloading source video", details={"video_id": video_id})
 
         source_video, video_title = download_video(video_id, job_id)
         duration = get_video_duration(source_video)
+        log_job(job_id, "info", "video_downloaded", video_title or "Video downloaded", details={"duration": duration})
 
         _update(job_id, stage="fetching_transcript", progress=35)
+        log_job(job_id, "info", "stage_started", "Fetching transcript")
         segments, language, transcript_source = fetch_transcript_with_fallback(source_video, video_id)
         transcript_text = format_transcript_for_analysis(segments)
+        log_job(
+            job_id,
+            "info",
+            "transcript_ready",
+            f"Transcript ready via {transcript_source}",
+            details={"language": language, "segment_count": len(segments)},
+        )
 
         _update(
             job_id,
@@ -200,19 +219,31 @@ def _run_pipeline(job_id: str) -> None:
         if job.get("auto_analyze", True):
             _run_ai_pass(job_id, transcript_text=transcript_text, duration=duration)
         else:
+            log_job(job_id, "info", "import_complete", "Video prepared without AI analysis")
             _update(job_id, status="prepared", stage="prepared", progress=100)
 
-    except (TranscriptError, AnalysisError, VideoError) as exc:
+    except (TranscriptError, VideoError) as exc:
+        log_job(job_id, "error", "import_failed", str(exc), details={"error_type": type(exc).__name__})
         _update(job_id, status="failed", stage="error", error=str(exc))
     except Exception as exc:
+        log_job(job_id, "error", "import_failed", str(exc), details={"error_type": type(exc).__name__})
         _update(job_id, status="failed", stage="error", error=f"Unexpected error: {exc}")
 
 
-def _run_ai_pass(job_id: str, transcript_text: str | None = None, duration: float | None = None) -> None:
+def _run_ai_pass(
+    job_id: str,
+    transcript_text: str | None = None,
+    duration: float | None = None,
+    *,
+    replace_existing: bool = True,
+) -> None:
     try:
         job = get_job(job_id)
         if not job:
             return
+
+        if not job.get("transcript"):
+            raise AnalysisError("Transcript is missing for this job.")
 
         segments = dicts_to_segments(job.get("transcript") or [])
         if not transcript_text:
@@ -222,12 +253,34 @@ def _run_ai_pass(job_id: str, transcript_text: str | None = None, duration: floa
         if duration is None and source:
             duration = get_video_duration(source)
 
-        _update(job_id, status="running", stage="analyzing", progress=60)
-        analysis = analyze_moments(transcript_text, duration)
+        if replace_existing:
+            removed = delete_clips_for_job(job_id, source_type="ai")
+            log_job(
+                job_id,
+                "info",
+                "ai_clips_cleared",
+                f"Removed {removed} previous AI clips before re-analysis",
+                details={"removed_count": removed},
+            )
+            manual_clips = [c for c in job.get("clips") or [] if c.get("source_type") == "manual"]
+            _update(job_id, clips=manual_clips, analysis=None)
+
+        _update(
+            job_id,
+            status="running",
+            stage="analyzing",
+            progress=60,
+            error=None,
+            analysis_error=None,
+            analysis=None if replace_existing else job.get("analysis"),
+        )
+
+        analysis = analyze_moments(transcript_text, duration, job_id=job_id)
         moments = analysis.get("moments", [])
 
         _update(job_id, analysis=analysis, stage="extracting_clips", progress=75)
 
+        job = get_job(job_id) or {}
         clips: list[dict[str, Any]] = list(job.get("clips") or [])
         manual_clips = [c for c in clips if c.get("source_type") == "manual"]
         clips = manual_clips
@@ -265,12 +318,46 @@ def _run_ai_pass(job_id: str, transcript_text: str | None = None, duration: floa
             progress = 75 + int(((index + 1) / total) * 20)
             _update(job_id, clips=clips, progress=min(progress, 95))
 
-        _update(job_id, status="completed", stage="done", progress=100, clips=clips)
+        log_job(
+            job_id,
+            "info",
+            "ai_analysis_complete",
+            f"Created {len(moments)} AI clips",
+            details={"ai_clip_count": len(moments), "manual_clip_count": len(manual_clips)},
+        )
+        _update(job_id, status="completed", stage="done", progress=100, clips=clips, analysis_error=None)
 
-    except (AnalysisError, VideoError) as exc:
-        _update(job_id, status="failed", stage="error", error=str(exc))
+    except AnalysisError as exc:
+        details = getattr(exc, "details", {}) or {}
+        log_job(job_id, "error", "analysis_failed", str(exc), details=details)
+        _update(
+            job_id,
+            status="prepared",
+            stage="prepared",
+            progress=100,
+            analysis_error=str(exc),
+            error=None,
+        )
+    except VideoError as exc:
+        log_job(job_id, "error", "clip_extraction_failed", str(exc))
+        _update(
+            job_id,
+            status="prepared",
+            stage="prepared",
+            progress=100,
+            analysis_error=str(exc),
+            error=None,
+        )
     except Exception as exc:
-        _update(job_id, status="failed", stage="error", error=f"Unexpected error: {exc}")
+        log_job(job_id, "error", "analysis_failed", str(exc), details={"error_type": type(exc).__name__})
+        _update(
+            job_id,
+            status="prepared",
+            stage="prepared",
+            progress=100,
+            analysis_error=f"Unexpected error: {exc}",
+            error=None,
+        )
 
 
 def _update(job_id: str, **fields: Any) -> None:

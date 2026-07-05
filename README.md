@@ -36,12 +36,16 @@ Edit `.env`:
 
 ```env
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-5.5
 # Optional second-pass model for verification
 OPENAI_VERIFY_MODEL=
+# Reasoning effort for GPT-5.x: none, low, medium, high, xhigh
+OPENAI_REASONING_EFFORT=medium
+# Output token budget (GPT-5.x counts reasoning tokens against this — keep high)
+OPENAI_MAX_COMPLETION_TOKENS=16384
 ```
 
-To use a stronger reasoning model for analysis, set `OPENAI_MODEL` to your preferred OpenAI model (for example a GPT-5.x reasoning model when available in your account).
+Use `OPENAI_VERIFY_MODEL` to run the QA pass on a different model (e.g. `gpt-5.5-pro` for higher accuracy).
 
 ## Run
 
@@ -94,6 +98,17 @@ frontend/
   app.js
 data/                    # created at runtime (jobs, clips, videos)
 ```
+
+## Tracking (Linear + Notion)
+
+Sync project tickets and Notion spec from the repo:
+
+```bash
+# Add to .env: LINEAR_API_KEY, optional NOTION_TOKEN + NOTION_PAGE_ID
+python scripts/setup_tracking.py
+```
+
+Updates existing Linear issues by title (no duplicates). Full spec: `docs/notion-page-content.md`.
 
 ## Notes
 

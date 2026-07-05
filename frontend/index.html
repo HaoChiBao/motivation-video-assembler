@@ -7,15 +7,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="app">
+      <div class="app-banner">
+        Motivation clip database — transcript-synced manual + AI clipping, saved locally on your machine.
+      </div>
+
       <header class="app-header">
-        <div class="app-header__inner">
+        <div class="app-header__shell">
           <div class="brand">
             <span class="brand-mark" aria-hidden="true"></span>
             <span class="brand-name">Assembler</span>
@@ -40,7 +44,10 @@
       <main class="app-main">
         <section id="analyze-view" class="view view-analyze">
           <div class="view-header">
-            <h1 class="view-title">Import a speech</h1>
+            <h1 class="display-title">
+              <span class="display-muted">Import a</span>
+              <span class="display-strong">motivational speech</span>
+            </h1>
             <p class="view-subtitle">
               Download the video, extract a timestamped transcript, then auto-find moments or clip manually in Studio.
             </p>
@@ -58,12 +65,12 @@
                 spellcheck="false"
                 required
               />
-              <button id="analyze-btn" class="btn btn-primary" type="submit">Start</button>
+              <button id="analyze-btn" class="btn btn-primary" type="submit">Start import</button>
             </form>
 
             <label class="checkbox-row">
               <input id="auto-analyze" type="checkbox" checked />
-              <span>Auto-find clips with AI after transcript is ready</span>
+              <span>Run AI clip analysis after transcript is ready (uncheck to import video + transcript only)</span>
             </label>
 
             <p id="inline-status" class="inline-status hidden" role="status"></p>
@@ -91,14 +98,24 @@
               <button id="open-studio-btn" class="btn btn-primary" type="button">Open in Studio</button>
               <button id="open-library-btn" class="btn btn-secondary" type="button">View database</button>
             </div>
+            <div id="pipeline-logs" class="job-logs hidden">
+              <div class="job-logs__head">
+                <p class="eyebrow">Job logs</p>
+                <button id="refresh-pipeline-logs-btn" class="btn btn-ghost" type="button">Refresh</button>
+              </div>
+              <pre id="pipeline-log-output" class="log-output" aria-live="polite"></pre>
+            </div>
           </div>
         </section>
 
         <section id="studio-view" class="view view-studio hidden">
           <div class="view-header studio-header">
             <div>
-              <h1 class="view-title">Clip studio</h1>
-              <p class="view-subtitle">Scrub the transcript, set in/out points, label your clip, and save it locally.</p>
+              <h1 class="display-title display-title--sm">
+                <span class="display-muted">Clip in</span>
+                <span class="display-strong">Studio</span>
+              </h1>
+              <p class="view-subtitle">Scrub the timeline, drag clip handles, or pick lines in the transcript — works on any imported video.</p>
             </div>
             <div class="studio-job-picker">
               <label class="field-label" for="studio-job-select">Source video</label>
@@ -114,26 +131,72 @@
 
           <div id="studio-workspace" class="studio-workspace hidden">
             <div class="studio-main card">
-              <div class="studio-video-wrap">
-                <video id="studio-video" controls playsinline preload="metadata"></video>
+              <div class="studio-video-wrap surface-dark">
+                <video id="studio-video" playsinline preload="metadata"></video>
               </div>
 
-              <div class="range-bar">
-                <div class="range-controls">
-                  <button id="set-start-btn" class="btn btn-ghost" type="button">Set start</button>
-                  <button id="set-end-btn" class="btn btn-ghost" type="button">Set end</button>
-                  <button id="preview-range-btn" class="btn btn-ghost" type="button">Preview range</button>
+              <div id="studio-clip-timeline" class="clip-timeline" aria-label="Video clipping timeline">
+                <div class="clip-timeline__header">
+                  <button type="button" class="clip-timeline__play btn btn-ghost" data-tl-play aria-label="Play video">Play</button>
+                  <div class="clip-timeline__readout">
+                    <span class="clip-timeline__readout-label">Now</span>
+                    <span class="clip-timeline__readout-value" data-tl-current>0:00</span>
+                  </div>
+                  <div class="clip-timeline__readout clip-timeline__readout--clip">
+                    <span class="clip-timeline__readout-label">Selection</span>
+                    <span class="clip-timeline__readout-value" data-tl-clip-meta>0:00 – 0:15 · 15s</span>
+                  </div>
+                  <div class="clip-timeline__readout clip-timeline__readout--end">
+                    <span class="clip-timeline__readout-label">Duration</span>
+                    <span class="clip-timeline__readout-value" data-tl-total>0:00</span>
+                  </div>
                 </div>
-                <div class="range-inputs">
-                  <label>Start <input id="clip-start" class="time-input" type="text" value="0:00" /></label>
-                  <label>End <input id="clip-end" class="time-input" type="text" value="0:15" /></label>
+
+                <div class="clip-timeline__row">
+                  <span class="clip-timeline__label">Timeline</span>
+                  <div class="clip-timeline__track clip-timeline__track--main" data-track="main">
+                    <div class="clip-timeline__track-bg"></div>
+                    <div class="clip-timeline__played" data-tl-played></div>
+                    <div class="clip-timeline__clip-region" data-tl-clip-region></div>
+                    <div class="clip-timeline__playhead" data-tl-playhead></div>
+                  </div>
+                </div>
+
+                <div class="clip-timeline__row">
+                  <span class="clip-timeline__label">Clip range</span>
+                  <div class="clip-timeline__track clip-timeline__track--clip" data-track="clip">
+                    <div class="clip-timeline__track-bg"></div>
+                    <div class="clip-timeline__range" data-tl-range>
+                      <div class="clip-timeline__range-fill" data-tl-range-fill></div>
+                      <button type="button" class="clip-timeline__handle clip-timeline__handle--start" data-handle="start" aria-label="Clip start"></button>
+                      <button type="button" class="clip-timeline__handle clip-timeline__handle--end" data-handle="end" aria-label="Clip end"></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="clip-timeline__footer">
+                  <div class="clip-timeline__inputs">
+                    <label class="clip-timeline__input-label">
+                      In
+                      <input class="time-input" data-tl-start-input type="text" value="0:00" spellcheck="false" />
+                    </label>
+                    <label class="clip-timeline__input-label">
+                      Out
+                      <input class="time-input" data-tl-end-input type="text" value="0:15" spellcheck="false" />
+                    </label>
+                  </div>
+                  <div class="clip-timeline__actions">
+                    <button class="btn btn-ghost" data-tl-set-start type="button">Set in</button>
+                    <button class="btn btn-ghost" data-tl-set-end type="button">Set out</button>
+                    <button class="btn btn-ghost" data-tl-preview type="button">Preview clip</button>
+                  </div>
                 </div>
               </div>
 
               <div class="transcript-panel">
                 <div class="transcript-panel__head">
                   <p class="eyebrow">Transcript</p>
-                  <span id="transcript-source" class="badge badge-neutral">captions</span>
+                  <span id="transcript-source" class="badge badge-teal">captions</span>
                 </div>
                 <div id="transcript-list" class="transcript-list"></div>
               </div>
@@ -168,19 +231,34 @@
               </label>
 
               <button id="save-clip-btn" class="btn btn-primary" type="button">Save clip</button>
-              <button id="run-ai-btn" class="btn btn-secondary" type="button">Run AI auto-clip</button>
+              <button id="run-ai-btn" class="btn btn-secondary" type="button">Run AI analysis</button>
               <p id="studio-status" class="inline-status hidden"></p>
+              <div id="studio-logs" class="job-logs hidden">
+                <div class="job-logs__head">
+                  <p class="eyebrow">Job logs</p>
+                  <button id="refresh-studio-logs-btn" class="btn btn-ghost" type="button">Refresh</button>
+                </div>
+                <pre id="studio-log-output" class="log-output" aria-live="polite"></pre>
+              </div>
             </aside>
           </div>
         </section>
 
         <section id="library-view" class="view view-library hidden">
+          <div class="view-header">
+            <h1 class="display-title display-title--sm">
+              <span class="display-muted">Motivation</span>
+              <span class="display-strong">clip database</span>
+            </h1>
+            <p class="view-subtitle">Search, filter, preview, and download indexed clips from your local library.</p>
+          </div>
+
           <div class="library-shell">
             <aside class="library-sidebar card">
               <div class="library-toolbar">
                 <div>
-                  <p class="eyebrow">Database</p>
-                  <h2 class="card-title">Motivation clips</h2>
+                  <p class="eyebrow">Index</p>
+                  <h2 class="card-title">All clips</h2>
                 </div>
                 <button id="refresh-library-btn" class="btn btn-ghost" type="button">Refresh</button>
               </div>
@@ -200,15 +278,15 @@
             </aside>
 
             <div id="clip-detail" class="clip-detail card hidden">
-              <div class="clip-detail__media">
+              <div class="clip-detail__media surface-dark">
                 <video id="detail-video" controls playsinline preload="metadata"></video>
               </div>
               <div class="clip-detail__body">
                 <div class="clip-detail__meta">
-                  <span id="detail-group" class="badge badge-accent"></span>
+                  <span id="detail-group" class="badge badge-teal"></span>
                   <span id="detail-source-type" class="badge badge-neutral"></span>
                   <span id="detail-time" class="badge badge-neutral"></span>
-                  <span id="detail-saved" class="badge badge-neutral hidden">Saved locally</span>
+                  <span id="detail-saved" class="badge badge-amber hidden">Saved locally</span>
                 </div>
                 <h3 id="detail-title" class="detail-title"></h3>
                 <blockquote id="detail-quote" class="detail-quote"></blockquote>
@@ -218,7 +296,7 @@
 
                 <div class="detail-actions">
                   <button id="download-clip-btn" class="btn btn-primary" type="button">Download MP4</button>
-                  <button id="save-local-btn" class="btn btn-secondary" type="button">Save to database folder</button>
+                  <button id="save-local-btn" class="btn btn-secondary" type="button">Save to folder</button>
                 </div>
 
                 <div class="edit-panel">
@@ -241,6 +319,7 @@
       </main>
     </div>
 
+    <script src="/clip-timeline.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend.config import CLIPS_DIR, DATABASE_CLIPS_DIR, ROOT_DIR, settings
+from backend.config import CLIPS_DIR, DATABASE_CLIPS_DIR, LOGS_DIR, ROOT_DIR, settings
 from backend.services.clipper import get_source_video_path
 from backend.services.database import (
     all_tags,
@@ -22,6 +22,7 @@ from backend.services.database import (
     save_clip_to_disk,
     update_clip,
 )
+from backend.services.job_logs import configure_logging, get_job_logs, list_recent_logs
 from backend.services.pipeline import (
     create_job,
     create_manual_clip,
@@ -30,6 +31,8 @@ from backend.services.pipeline import (
     list_studio_jobs,
     run_ai_analysis,
 )
+
+configure_logging()
 
 FRONTEND_DIR = ROOT_DIR / "frontend"
 
@@ -67,6 +70,10 @@ class ClipUpdateRequest(BaseModel):
     quote: str | None = None
 
 
+class AiAnalysisRequest(BaseModel):
+    replace_existing: bool = True
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {
@@ -75,6 +82,7 @@ def health() -> dict:
         "model": settings.openai_model,
         "verify_model": settings.verify_model,
         "database_path": str(ROOT_DIR / "data" / "database"),
+        "logs_path": str(LOGS_DIR),
     }
 
 
@@ -132,19 +140,35 @@ def job_source_video(job_id: str) -> FileResponse:
     return FileResponse(path, media_type="video/mp4", filename=path.name)
 
 
+@app.get("/api/jobs/{job_id}/logs")
+def job_logs(job_id: str, limit: int = Query(default=200, ge=1, le=1000)) -> dict:
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    return {"job_id": job_id, "logs": get_job_logs(job_id, limit=limit)}
+
+
+@app.get("/api/logs/recent")
+def recent_logs(limit: int = Query(default=50, ge=1, le=200)) -> dict:
+    return {"logs": list_recent_logs(limit=limit)}
+
+
 @app.post("/api/jobs/{job_id}/analyze-ai")
-def trigger_ai_analysis(job_id: str) -> dict:
+def trigger_ai_analysis(job_id: str, payload: AiAnalysisRequest | None = None) -> dict:
     if not settings.openai_api_key:
         raise HTTPException(status_code=400, detail="OPENAI_API_KEY is not configured.")
 
     job = get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
-    if job.get("status") not in {"prepared", "completed"}:
-        raise HTTPException(status_code=400, detail="Job must be prepared before AI analysis.")
+    if not job.get("transcript"):
+        raise HTTPException(status_code=400, detail="Job has no transcript yet.")
+    if job.get("status") == "running":
+        raise HTTPException(status_code=409, detail="Job is already running.")
 
-    run_ai_analysis(job_id)
-    return {"job_id": job_id, "status": "running"}
+    replace_existing = payload.replace_existing if payload else True
+    run_ai_analysis(job_id, replace_existing=replace_existing)
+    return {"job_id": job_id, "status": "running", "replace_existing": replace_existing}
 
 
 @app.post("/api/jobs/{job_id}/clips")

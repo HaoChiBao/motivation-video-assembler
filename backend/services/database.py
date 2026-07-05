@@ -91,19 +91,53 @@ def update_clip(clip_id: str, **fields: Any) -> dict[str, Any] | None:
     return None
 
 
+def delete_clips_for_job(job_id: str, *, source_type: str = "") -> int:
+    """Remove indexed clips for a job, optionally filtered by source_type."""
+    removed = 0
+    with _lock:
+        index = _load_index()
+        clips = index.get("clips", [])
+        kept: list[dict[str, Any]] = []
+        for clip in clips:
+            if clip.get("job_id") == job_id and (not source_type or clip.get("source_type") == source_type):
+                _remove_clip_files(clip)
+                removed += 1
+            else:
+                kept.append(clip)
+        if removed:
+            index["clips"] = kept
+            _save_index(index)
+    return removed
+
+
+def _remove_clip_files(clip: dict[str, Any]) -> None:
+    clip_id = clip.get("id")
+    if clip_id:
+        saved = DATABASE_CLIPS_DIR / f"{clip_id}.mp4"
+        if saved.exists():
+            saved.unlink()
+
+    filename = clip.get("clip_filename")
+    job_id = clip.get("job_id")
+    if filename and job_id:
+        source = CLIPS_DIR / job_id / filename
+        if source.exists():
+            source.unlink()
+
+
 def delete_clip(clip_id: str) -> bool:
     with _lock:
         index = _load_index()
         clips = index.get("clips", [])
+        target = next((c for c in clips if c["id"] == clip_id), None)
         kept = [c for c in clips if c["id"] != clip_id]
         if len(kept) == len(clips):
             return False
         index["clips"] = kept
         _save_index(index)
 
-    saved = DATABASE_CLIPS_DIR / f"{clip_id}.mp4"
-    if saved.exists():
-        saved.unlink()
+    if target:
+        _remove_clip_files(target)
     return True
 
 

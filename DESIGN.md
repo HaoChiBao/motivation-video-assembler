@@ -1,677 +1,428 @@
----
-version: alpha
-name: Goated-design-system
-description: A warm-canvas editorial interface for Goated Documentation, adapted from a Goated Documentation-inspired design language. The system anchors on a tinted cream canvas with serif display headlines, moss-green CTAs, stone-grey structure, and dark product surfaces for code, integrations, AI logs, and documentation previews. Brand voltage comes from the cream + moss pairing — warm, grounded, and humanist without becoming cartoonish. Type voice runs a slab-serif display ("Cormorant Garamond" / Tiempos Headline / Copernicus-style) for h1/h2 and a humanist sans for body. The goat identity appears subtly through moss, stone, clay, trails, and occasional small goat glyphs or mascot moments.
+# Wispr Flow — Style Reference
+> cream paper with deep teal ink and a lavender highlighter.
 
-colors:
-  primary: "#6f7c5d"
-  primary-active: "#556246"
-  primary-soft: "#dde3d2"
-  primary-disabled: "#e2e4dc"
-  ink: "#141413"
-  body: "#3d3d3a"
-  body-strong: "#252523"
-  muted: "#6c6a64"
-  muted-soft: "#8e8b82"
-  hairline: "#e6dfd8"
-  hairline-soft: "#ebe6df"
-  canvas: "#faf9f5"
-  surface-soft: "#f5f0e8"
-  surface-card: "#efe9de"
-  surface-cream-strong: "#e8e0d2"
-  surface-dark: "#181715"
-  surface-dark-elevated: "#252320"
-  surface-dark-soft: "#1f1e1b"
-  on-primary: "#ffffff"
-  on-dark: "#faf9f5"
-  on-dark-soft: "#a09d96"
-  accent-moss-soft: "#dde3d2"
-  accent-clay: "#b7835f"
-  success: "#5f8f66"
-  warning: "#d4a017"
-  error: "#c64545"
+**Theme:** mixed
 
-typography:
-  display-xl:
-    fontFamily: "Copernicus, Tiempos Headline, serif"
-    fontSize: 64px
-    fontWeight: 400
-    lineHeight: 1.05
-    letterSpacing: -1.5px
-  display-lg:
-    fontFamily: "Copernicus, Tiempos Headline, serif"
-    fontSize: 48px
-    fontWeight: 400
-    lineHeight: 1.1
-    letterSpacing: -1px
-  display-md:
-    fontFamily: "Copernicus, Tiempos Headline, serif"
-    fontSize: 36px
-    fontWeight: 400
-    lineHeight: 1.15
-    letterSpacing: -0.5px
-  display-sm:
-    fontFamily: "Copernicus, Tiempos Headline, serif"
-    fontSize: 28px
-    fontWeight: 400
-    lineHeight: 1.2
-    letterSpacing: -0.3px
-  title-lg:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 22px
-    fontWeight: 500
-    lineHeight: 1.3
-    letterSpacing: 0
-  title-md:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 18px
-    fontWeight: 500
-    lineHeight: 1.4
-    letterSpacing: 0
-  title-sm:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 16px
-    fontWeight: 500
-    lineHeight: 1.4
-    letterSpacing: 0
-  body-md:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 1.55
-    letterSpacing: 0
-  body-sm:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 14px
-    fontWeight: 400
-    lineHeight: 1.55
-    letterSpacing: 0
-  caption:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 13px
-    fontWeight: 500
-    lineHeight: 1.4
-    letterSpacing: 0
-  caption-uppercase:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 1.4
-    letterSpacing: 1.5px
-  code:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontSize: 14px
-    fontWeight: 400
-    lineHeight: 1.6
-    letterSpacing: 0
-  button:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 14px
-    fontWeight: 500
-    lineHeight: 1
-    letterSpacing: 0
-  nav-link:
-    fontFamily: "StyreneB, Inter, sans-serif"
-    fontSize: 14px
-    fontWeight: 500
-    lineHeight: 1.4
-    letterSpacing: 0
+Wispr Flow operates as an editorial-meets-tech aesthetic: a warm cream canvas (#ffffeb) hosts a refined duotone of deep teal and soft lavender, with the design toggling between bright open sections and near-black dramatic ones. Typography is the signature — EB Garamond serif at 64–120px carries every hero headline with tight negative tracking, while Figtree sans-serif handles all UI, body, and navigation text at compact sizes. Buttons are soft lavender pills, borders are hairline-dark, and corners are generously rounded (14px on controls, 32px on cards, fully rounded on decorative orbs). The system is restrained in palette but expressive in type pairing — a newspaper serif shouting across a modern interface.
 
-rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
-  pill: 9999px
-  full: 9999px
+## Tokens — Colors
 
-spacing:
-  xxs: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  xxl: 48px
-  section: 96px
+| Name | Value | Token | Role |
+|------|-------|-------|------|
+| Cream Paper | `#ffffeb` | `--color-cream-paper` | Primary page canvas, card surfaces, light section backgrounds — the warm ivory that defines the entire light theme |
+| Midnight Ink | `#1a1a1a` | `--color-midnight-ink` | Primary text, dark section backgrounds, hairline borders, nav dividers — near-black rather than pure black for warmth |
+| Pure Black | `#000000` | `--color-pure-black` | Decorative SVG fills and shadow color — not a text or surface token |
+| White | `#ffffff` | `--color-white` | Text on dark surfaces, nav bar background, badge fills, inverse button text |
+| Stone Mist | `#e4e4d0` | `--color-stone-mist` | Subtle borders on the cream canvas, nav background variant, muted surface tint — barely-there warm gray that separates without shouting |
+| Graphite Veil | `#8a8a80` | `--color-graphite-veil` | Medium-contrast borders, control outlines, and structural separators. |
+| Smoke | `#5f5f59` | `--color-smoke` | Tertiary text, low-emphasis captions, less prominent body copy |
+| Charcoal | `#222222` | `--color-charcoal` | Nav borders, button borders, dark UI chrome — one step lighter than Midnight Ink for layered dark elements |
+| Charcoal Mist | `#333333` | `--color-charcoal-mist` | Dark borders and separators for elevated surfaces and inverted UI. Do not promote it to the primary CTA color |
+| Deep Forest Teal | `#034f46` | `--color-deep-forest-teal` | Announcement banner background, dark testimonial band, badge fills, brand-defining accent section — rich teal that anchors visual weight |
+| Lavender Whisper | `#f0d7ff` | `--color-lavender-whisper` | Primary CTA button background, headline underline accent, highlight washes — the soft purple that signals actionable moments without aggression |
+| Amber Pulse | `#ffa946` | `--color-amber-pulse` | Decorative accent, badge highlight, illustration warm fill — small dose of warmth against the teal-and-lavender duotone |
 
-components:
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 12px 20px
-    height: 40px
-  button-primary-active:
-    backgroundColor: "{colors.primary-active}"
-    textColor: "{colors.on-primary}"
-    rounded: "{rounded.md}"
-  button-primary-disabled:
-    backgroundColor: "{colors.primary-disabled}"
-    textColor: "{colors.muted}"
-    rounded: "{rounded.md}"
-  button-secondary:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 12px 20px
-    height: 40px
-  button-secondary-on-dark:
-    backgroundColor: "{colors.surface-dark-elevated}"
-    textColor: "{colors.on-dark}"
-    typography: "{typography.button}"
-    rounded: "{rounded.md}"
-    padding: 12px 20px
-  button-text-link:
-    backgroundColor: transparent
-    textColor: "{colors.ink}"
-    typography: "{typography.button}"
-  button-icon-circular:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.full}"
-    size: 36px
-  text-link:
-    backgroundColor: transparent
-    textColor: "{colors.primary}"
-    typography: "{typography.body-md}"
-  top-nav:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.nav-link}"
-    height: 64px
-  hero-band:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.display-xl}"
-    padding: 96px
-  hero-illustration-card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.xl}"
-  feature-card:
-    backgroundColor: "{colors.surface-card}"
-    textColor: "{colors.ink}"
-    typography: "{typography.title-md}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  product-mockup-card-dark:
-    backgroundColor: "{colors.surface-dark}"
-    textColor: "{colors.on-dark}"
-    typography: "{typography.title-md}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  code-window-card:
-    backgroundColor: "{colors.surface-dark}"
-    textColor: "{colors.on-dark}"
-    typography: "{typography.code}"
-    rounded: "{rounded.lg}"
-    padding: 24px
-  model-comparison-card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.title-md}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  pricing-tier-card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.title-lg}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  pricing-tier-card-featured:
-    backgroundColor: "{colors.surface-dark}"
-    textColor: "{colors.on-dark}"
-    typography: "{typography.title-lg}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  callout-card-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.title-md}"
-    rounded: "{rounded.lg}"
-    padding: 32px
-  connector-tile:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.title-sm}"
-    rounded: "{rounded.lg}"
-    padding: 20px
-  text-input:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: 10px 14px
-    height: 40px
-  text-input-focused:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.md}"
-  cookie-consent-card:
-    backgroundColor: "{colors.surface-dark}"
-    textColor: "{colors.on-dark}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.lg}"
-    padding: 24px
-  category-tab:
-    backgroundColor: transparent
-    textColor: "{colors.muted}"
-    typography: "{typography.nav-link}"
-    padding: 8px 14px
-    rounded: "{rounded.md}"
-  category-tab-active:
-    backgroundColor: "{colors.surface-card}"
-    textColor: "{colors.ink}"
-    typography: "{typography.nav-link}"
-    rounded: "{rounded.md}"
-  badge-pill:
-    backgroundColor: "{colors.surface-card}"
-    textColor: "{colors.ink}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.pill}"
-    padding: 4px 12px
-  badge-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.caption-uppercase}"
-    rounded: "{rounded.pill}"
-    padding: 4px 12px
-  cta-band-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.display-sm}"
-    rounded: "{rounded.lg}"
-    padding: 64px
-  cta-band-dark:
-    backgroundColor: "{colors.surface-dark}"
-    textColor: "{colors.on-dark}"
-    typography: "{typography.display-sm}"
-    rounded: "{rounded.lg}"
-    padding: 64px
-  footer:
-    backgroundColor: "{colors.surface-dark}"
-    textColor: "{colors.on-dark-soft}"
-    typography: "{typography.body-sm}"
-    padding: 64px
----
+## Tokens — Typography
 
+### Figtree — All UI text — body, navigation, buttons, labels, captions, badge text, footer. Weight 500 for nav items and labels, 600 for button text, 700 for emphasized inline text. Compact line-heights (0.95–1.00) on larger sizes give headings a tight controlled feel. · `--font-figtree`
+- **Substitute:** Inter, DM Sans, Manrope
+- **Weights:** 400, 500, 600, 700
+- **Sizes:** 14px, 16px, 20px, 22px, 24px, 32px
+- **Line height:** 1.00, 1.30, 0.95
+- **Role:** All UI text — body, navigation, buttons, labels, captions, badge text, footer. Weight 500 for nav items and labels, 600 for button text, 700 for emphasized inline text. Compact line-heights (0.95–1.00) on larger sizes give headings a tight controlled feel.
 
-## Goated Theme Decisions
+### EB Garamond — Display and hero headlines — used at 64–120px for section titles ('Don't type, just speak', '4x faster than typing') and 32–48px for sub-display. The serif choice is the brand's most distinctive decision: an editorial voice inside a tech product. Negative letter-spacing tightens the classical letterforms into a modern headline block. · `--font-eb-garamond`
+- **Substitute:** Cormorant Garamond, Playfair Display, Lora
+- **Weights:** 400
+- **Sizes:** 32px, 48px, 64px, 120px
+- **Line height:** 0.85–1.30
+- **Letter spacing:** -0.0500em at 64px, -0.0700em at 48px, -0.1300em at 120px, -0.0300em at 32px
+- **OpenType features:** `"liga" on, "dlig" on`
+- **Role:** Display and hero headlines — used at 64–120px for section titles ('Don't type, just speak', '4x faster than typing') and 32–48px for sub-display. The serif choice is the brand's most distinctive decision: an editorial voice inside a tech product. Negative letter-spacing tightens the classical letterforms into a modern headline block.
 
-This file combines the original Claude-inspired warm editorial design system with the Goated Documentation brand direction. The original structure remains: cream canvas, serif display headlines, humanist sans UI text, dark product surfaces, sparse accent usage, generous spacing, and subtle hairline borders. The brand accent is now **moss green**, not orange/coral.
+### Apple Color Emoji — Apple Color Emoji — detected in extracted data but not described by AI · `--font-apple-color-emoji`
+- **Weights:** 400
+- **Sizes:** 72px
+- **Line height:** 1.3
+- **Role:** Apple Color Emoji — detected in extracted data but not described by AI
 
-### Locked Accent
+### Type Scale
 
-```css
---primary: #6F7C5D;
---primary-active: #556246;
---primary-soft: #DDE3D2;
---primary-disabled: #E2E4DC;
-```
+| Role | Size | Line Height | Letter Spacing | Token |
+|------|------|-------------|----------------|-------|
+| caption | 14px | 1.3 | — | `--text-caption` |
+| body | 16px | 1.3 | — | `--text-body` |
+| subheading | 20px | 1.3 | — | `--text-subheading` |
+| heading-sm | 24px | 1 | — | `--text-heading-sm` |
+| heading | 32px | 1 | — | `--text-heading` |
+| heading-lg | 48px | 0.95 | -0.07px | `--text-heading-lg` |
+| display | 64px | 0.95 | -0.05px | `--text-display` |
+| display-xl | 120px | 0.85 | -0.13px | `--text-display-xl` |
 
-### Theme Rule
+## Tokens — Spacing & Shapes
 
-- **Green = action, active, alive**
-- **Stone/grey = structure, metadata, calm**
-- **Cream = canvas**
-- **Dark = product/code/AI surfaces**
+**Base unit:** 8px
 
-### Goat Direction
+**Density:** comfortable
 
-The goat identity should be subtle and product-grade. Use moss, stone, clay, cream, and dark surfaces. Add small goat glyphs, pixel-goat empty states, or language like “activity trail” and “project trail” sparingly. Do not make the app look like a farm game.
+### Spacing Scale
 
-### Recommended shadcn/Tailwind Variables
+| Name | Value | Token |
+|------|-------|-------|
+| 8 | 8px | `--spacing-8` |
+| 16 | 16px | `--spacing-16` |
+| 24 | 24px | `--spacing-24` |
+| 32 | 32px | `--spacing-32` |
+| 40 | 40px | `--spacing-40` |
+| 48 | 48px | `--spacing-48` |
+| 56 | 56px | `--spacing-56` |
+| 64 | 64px | `--spacing-64` |
+| 80 | 80px | `--spacing-80` |
+| 96 | 96px | `--spacing-96` |
+| 104 | 104px | `--spacing-104` |
+| 128 | 128px | `--spacing-128` |
+| 168 | 168px | `--spacing-168` |
+| 224 | 224px | `--spacing-224` |
 
-```css
-:root {
-  --background: 48 33% 97%;
-  --foreground: 60 2% 8%;
+### Border Radius
 
-  --card: 38 31% 90%;
-  --card-foreground: 60 2% 8%;
+| Element | Value |
+|---------|-------|
+| nav | 14px |
+| cards | 32px |
+| badges | 1000px |
+| images | 40px |
+| buttons | 14px |
+| smallBadges | 8px |
+| decorativeOrbs | 1600px |
 
-  --popover: 48 33% 97%;
-  --popover-foreground: 60 2% 8%;
+### Layout
 
-  --primary: 83 14% 43%;
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 36 33% 94%;
-  --secondary-foreground: 60 2% 8%;
-
-  --muted: 36 25% 91%;
-  --muted-foreground: 40 4% 41%;
-
-  --accent: 83 25% 86%;
-  --accent-foreground: 60 2% 8%;
-
-  --border: 36 25% 87%;
-  --input: 36 25% 87%;
-  --ring: 83 14% 43%;
-}
-```
-
-## Overview
-
-Goated Documentation is the warmest, most editorial interface in the AI-product category. The base atmosphere is a **tinted cream canvas** (`{colors.canvas}` — #faf9f5) — distinctly warm, deliberately not the cool gray-white that every other AI brand uses. Headlines run a **slab-serif display** ("Copernicus" / Tiempos Headline) at weight 400 with negative letter-spacing, paired with **StyreneB / Inter** body sans. The combination feels like a literary publication, not a SaaS marketing page.
-
-Brand voltage comes from the **cream + moss green pairing** — moss green (`{colors.primary}` — #cc785c) is the signature Goated accent, used on every primary CTA, on the brand wordmark, and on full-bleed callout cards. The moss green is warm, slightly muted, never cyan/blue — a deliberate counter-positioning against OpenAI's cool slate, Google's saturated blue, and Microsoft's corporate cyan.
-
-The system has three surface modes that alternate page-by-page:
-1. **Cream canvas** (`{colors.canvas}`) — default body floor
-2. **Light cream cards** (`{colors.surface-card}`) — feature card backgrounds
-3. **Dark navy product surfaces** (`{colors.surface-dark}`) — code editor mockups, model showcase cards, pre-footer CTAs, footer itself
-
-The dark surfaces are where Goated Documentation shows its product chrome — code blocks, terminal output, model comparison tables, agentic-flow diagrams. The cream-to-dark contrast is the page's pacing rhythm.
-
-**Key Characteristics:**
-- Warm cream canvas (`{colors.canvas}` — #faf9f5) with dark warm-ink text (`{colors.ink}` — #141413). The brand's defining color choice.
-- Moss green primary CTA (`{colors.primary}` — #cc785c). Used scarcely on individual buttons, generously on full-bleed moss green callout cards.
-- Slab-serif display headlines via Copernicus / Tiempos Headline at weight 400 with negative letter-spacing. Pairs with humanist sans body for a literary editorial voice.
-- Dark navy product mockup cards (`{colors.surface-dark}` — #181715) carrying code blocks, terminal panels, model comparison data — the brand shows the product chrome at scale rather than abstract marketing illustrations.
-- Light cream feature cards (`{colors.surface-card}` — #efe9de) — slightly darker than canvas, used for content-driven feature explanations.
-- Goated goat-mark mark — a small black asterisk-like glyph (4-spoke radial) — appears as the brand wordmark prefix and as a content marker.
-- Border radius is hierarchical: `{rounded.md}` (8px) for buttons + inputs, `{rounded.lg}` (12px) for content + product cards, `{rounded.xl}` (16px) for the hero illustration container, `{rounded.pill}` for badges.
-- Section rhythm `{spacing.section}` (96px) — modern-SaaS standard. Internal card padding stays generous at `{spacing.xl}` (32px).
-
-## Colors
-
-### Brand & Accent
-- **Moss green / Primary** (`{colors.primary}` — #cc785c): The signature Goated warm moss green. Used on every primary CTA background, on full-bleed moss green callout cards, on the brand wordmark accent. The most-recognized Goated color outside of the goat-mark logo.
-- **Moss green Active** (`{colors.primary-active}` — #a9583e): The press / hover-darker variant.
-- **Moss green Disabled** (`{colors.primary-disabled}` — #e6dfd8): A desaturated cream-tinted disabled state.
-- **Accent Teal** (`{colors.accent-teal}` — #5db8a6): Used sparingly on secondary product surfaces (terminal status indicators, "active connection" dots in connectors page).
-- **Accent Amber** (`{colors.accent-amber}` — #e8a55a): A small companion warm-tone used on category badges and inline highlights.
-
-### Surface
-- **Canvas** (`{colors.canvas}` — #faf9f5): The default page floor. Tinted cream — warm, deliberately not pure white.
-- **Surface Soft** (`{colors.surface-soft}` — #f5f0e8): Section dividers, very-soft band backgrounds.
-- **Surface Card** (`{colors.surface-card}` — #efe9de): Feature cards, content cards. One step darker than canvas.
-- **Surface Cream Strong** (`{colors.surface-cream-strong}` — #e8e0d2): A strongest-cream variant used on selected category tabs and emphasized section bands.
-- **Surface Dark** (`{colors.surface-dark}` — #181715): Code editor mockups, model showcase cards, footer. The dominant dark surface.
-- **Surface Dark Elevated** (`{colors.surface-dark-elevated}` — #252320): Elevated cards inside dark bands (settings panels in mockups).
-- **Surface Dark Soft** (`{colors.surface-dark-soft}` — #1f1e1b): Slightly lighter dark, used for code block backgrounds inside larger dark cards.
-- **Hairline** (`{colors.hairline}` — #e6dfd8): The 1px border tone on cream surfaces. Same hex as `{colors.primary-disabled}` — borders feel like one elevation step rather than ink lines.
-- **Hairline Soft** (`{colors.hairline-soft}` — #ebe6df): Barely-visible divider used inside the same band.
-
-### Text
-- **Ink** (`{colors.ink}` — #141413): All headlines and primary text. Warm dark, slightly off-pure-black.
-- **Body Strong** (`{colors.body-strong}` — #252523): Emphasized paragraphs, lead text.
-- **Body** (`{colors.body}` — #3d3d3a): Default running-text color.
-- **Muted** (`{colors.muted}` — #6c6a64): Sub-headings, breadcrumbs, footer-adjacent secondary text.
-- **Muted Soft** (`{colors.muted-soft}` — #8e8b82): Captions, fine-print, copyright lines.
-- **On Primary** (`{colors.on-primary}` — #ffffff): Text on moss green buttons.
-- **On Dark** (`{colors.on-dark}` — #faf9f5): Cream-tinted white used on dark surfaces (echoes the canvas tone).
-- **On Dark Soft** (`{colors.on-dark-soft}` — #a09d96): Footer body text, secondary labels in dark mockups.
-
-### Semantic
-- **Success** (`{colors.success}` — #5db872): Green status dots, "available" indicators.
-- **Warning** (`{colors.warning}` — #d4a017): Warning callouts (rare on marketing surfaces).
-- **Error** (`{colors.error}` — #c64545): Validation errors.
-
-## Typography
-
-### Font Family
-The system runs **Copernicus** (or **Tiempos Headline** as substitute) as the slab-serif display face for headlines, and **StyreneB** (or **Inter** as substitute) as the humanist sans for body, navigation, and UI labels. **JetBrains Mono** handles code blocks. The fallback stack walks `Tiempos Headline, Garamond, "Times New Roman", serif` for display and `Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif` for body.
-
-The display/body split is editorial:
-- Copernicus serif (weight 400, negative tracking) → h1, h2, h3, hero display
-- StyreneB sans (weight 400-500) → body, navigation, buttons, captions, labels
-- JetBrains Mono → all code blocks and terminal text
-
-### Hierarchy
-
-| Token | Size | Weight | Line Height | Letter Spacing | Use |
-|---|---|---|---|---|---|
-| `{typography.display-xl}` | 64px | 400 | 1.05 | -1.5px | Homepage h1 ("Meet your thinking partner") — Copernicus serif |
-| `{typography.display-lg}` | 48px | 400 | 1.1 | -1px | Section heads — Copernicus |
-| `{typography.display-md}` | 36px | 400 | 1.15 | -0.5px | Sub-section heads, model names — Copernicus |
-| `{typography.display-sm}` | 28px | 400 | 1.2 | -0.3px | Pricing tier names, callout headlines — Copernicus |
-| `{typography.title-lg}` | 22px | 500 | 1.3 | 0 | Pricing plan size labels — StyreneB |
-| `{typography.title-md}` | 18px | 500 | 1.4 | 0 | Feature card titles, intro paragraphs |
-| `{typography.title-sm}` | 16px | 500 | 1.4 | 0 | Connector tile titles, list labels |
-| `{typography.body-md}` | 16px | 400 | 1.55 | 0 | Default running-text — StyreneB |
-| `{typography.body-sm}` | 14px | 400 | 1.55 | 0 | Footer body, fine-print |
-| `{typography.caption}` | 13px | 500 | 1.4 | 0 | Badge labels, captions |
-| `{typography.caption-uppercase}` | 12px | 500 | 1.4 | 1.5px | Category tags, "NEW" badges |
-| `{typography.code}` | 14px | 400 | 1.6 | 0 | Code blocks — JetBrains Mono |
-| `{typography.button}` | 14px | 500 | 1.0 | 0 | Standard button labels |
-| `{typography.nav-link}` | 14px | 500 | 1.4 | 0 | Top-nav menu items |
-
-### Principles
-Display sizes use weight 400 (regular), never bold. Negative letter-spacing (-0.3 to -1.5px) is essential — Copernicus without it reads as off-brand. The serif character is what gives Goated its literary, considered voice; switching to a sans-serif display would make Goated Documentation feel like every other AI tool.
-
-Body type stays at weight 400 for paragraphs, weight 500 for labels and emphasized phrases. The sans body is humanist (StyreneB) — never geometric. Inter is an acceptable substitute because of its similar humanist proportions; Helvetica or Arial would be too neutral and break the warm-editorial feel.
-
-### Note on Font Substitutes
-If Copernicus / Tiempos Headline is unavailable, **Cormorant Garamond** at weight 500 with -0.02em letter-spacing is the closest open-source approximation. **EB Garamond** is a fallback. For StyreneB, **Inter** is the closest match — both are humanist sans designed for screen reading. **Söhne** is another close alternative if licensed.
-
-## Layout
-
-### Spacing System
-- **Base unit:** 4px.
-- **Tokens:** `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 16px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 96px.
-- **Section padding:** `{spacing.section}` (96px) — modern-SaaS rhythm.
-- **Card internal padding:** `{spacing.xl}` (32px) for feature cards, pricing tier cards, model comparison cards; `{spacing.lg}` (24px) for code-window cards and connector tiles.
-- **Callout / CTA bands:** `{spacing.xxl}` (48px) inside moss green callout cards; 64px inside the larger dark CTA band.
-
-### Grid & Container
-- **Max content width:** ~1200px centered.
-- **Editorial body:** Single 12-column grid; hero often uses 6/6 split (h1 left, illustration right).
-- **Feature card grids:** 3-up at desktop, 2-up at tablet, 1-up at mobile.
-- **Connector tile grids:** 4-up or 6-up at desktop, 2-up at tablet, 1-up at mobile.
-- **Pricing grid:** 3-up at desktop (Free / Pro / Team / Enterprise often), 1-up at mobile.
-
-### Whitespace Philosophy
-The cream canvas + serif display + generous internal padding create an editorial pacing — Goated Documentation reads like a long-form magazine column rather than a marketing template. Whitespace between bands stays uniform at 96px; whitespace inside cards is generous (32px), letting type breathe.
-
-## Elevation & Depth
-
-| Level | Treatment | Use |
-|---|---|---|
-| Flat | No shadow, no border | Body sections, top nav, hero bands |
-| Soft hairline | 1px `{colors.hairline}` border | Inputs, sub-nav, occasionally on cards |
-| Cream card | `{colors.surface-card}` background — no shadow | Feature cards, content cards |
-| Dark surface card | `{colors.surface-dark}` background — no shadow | Code editor mockups, model showcase cards |
-| Subtle drop shadow | Faint shadow at low alpha | Hover-elevated states (the system uses `0 1px 3px rgba(20,20,19,0.08)` rarely) |
-
-The elevation philosophy is **color-block first, shadow rare**. Most depth comes from the cream-vs-dark surface contrast. Shadows are minimal. The dark surface mockups have their own internal product chrome (code editor scrollbars, line numbers, syntax highlighting) which adds detail without needing external shadows.
-
-### Decorative Depth
-- The Goated goat-mark glyph (4-spoke radial asterisk) appears as a small black mark in the brand wordmark and inline as a content marker.
-- Code editor mockups carry their own internal depth: syntax-highlighted text in muted blues / oranges / grays, line numbers in `{colors.muted-soft}`, status bars at the bottom in `{colors.surface-dark-elevated}`.
-- Some hero illustrations use simple line-art with moss green and dark-navy strokes on cream — minimal, hand-drawn-feeling, never photorealistic.
-
-## Shapes
-
-### Border Radius Scale
-
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.xs}` | 4px | Reserved for badge accents and tiny dropdowns |
-| `{rounded.sm}` | 6px | Small inline buttons, dropdown items |
-| `{rounded.md}` | 8px | Standard CTA buttons, text inputs, category tabs |
-| `{rounded.lg}` | 12px | Content cards (feature, pricing, code-window, model-comparison) |
-| `{rounded.xl}` | 16px | Hero illustration container, the larger marquee components |
-| `{rounded.pill}` | 9999px | Badge pills, "NEW" tags |
-| `{rounded.full}` | 9999px / 50% | Avatar substitutes, icon buttons |
-
-### Photography & Illustrations
-Goated Documentation's hero rarely uses photography. Instead it uses:
-- Simple line-art illustrations with moss green + dark-navy strokes on the cream canvas
-- Code editor mockups (the dominant "hero" treatment on developer-focused pages)
-- Terminal output mockups with monospace text on dark
-- Model comparison cards (Opus / Sonnet / Haiku) with abstract geometric thumbnails
-
-When photography is used (rare — mostly testimonials), avatars crop to perfect circles at 40px diameter.
+- **Page max-width:** 1200px
+- **Section gap:** 64-80px
+- **Card padding:** 32px
+- **Element gap:** 8-16px
 
 ## Components
 
-### Top Navigation
+### Primary CTA Button (Lavender)
+**Role:** The signature action — download, get started, primary conversion
 
-**`top-nav`** — Cream nav bar pinned to the top of every page. 64px tall, `{colors.canvas}` background. Carries the Goated goat-mark + "Goated Documentation" wordmark at left, primary horizontal menu (Product, Solutions, Use Cases, Pricing, Research, Company) center-left, right-side cluster with "Sign in" text-link, "Try Goated Documentation" `{component.button-primary}` (moss green). Menu items in `{typography.nav-link}` (StyreneB 14px / 500).
+Filled with Lavender Whisper (#f0d7ff), Midnight Ink (#1a1a1a) text, Figtree weight 600 at 14–16px. Rounded 14px. Padding 10px 18px. Includes Apple logo icon prefix. 1px solid Midnight Ink border for definition against cream.
 
-### Buttons
+### Ghost Outlined Button
+**Role:** Secondary action — alternative download, watch demo, learn more
 
-**`button-primary`** — The signature moss green CTA. Background `{colors.primary}` (#cc785c), text `{colors.on-primary}` (white), type `{typography.button}` (StyreneB 14px / 500), padding 12px × 20px, height 40px, rounded `{rounded.md}` (8px). Active state `button-primary-active` darkens to `{colors.primary-active}` (#a9583e).
+Transparent fill on cream surfaces; Midnight Ink (#1a1a1a) 1px border, Midnight Ink text at Figtree 600/14px. Rounded 14px. On dark sections: white border, white text.
 
-**`button-secondary`** — Cream button with hairline outline. Background `{colors.canvas}`, text `{colors.ink}`, 1px hairline border, same padding + height + radius as primary.
+### Navigation Bar
+**Role:** Sticky top navigation with brand, links, and dual CTAs
 
-**`button-secondary-on-dark`** — Used over `{colors.surface-dark}` cards. Background `{colors.surface-dark-elevated}` (#252320), text `{colors.on-dark}`. Stays dark — the system never inverts to a light secondary on dark surfaces.
+White (#ffffff) background, 1px Stone Mist (#e4e4d0) border, rounded 14px (pill-shaped outer container). Internal padding 8–12px. Logo 'Flow' with bar-chart icon in Midnight Ink. Nav links in Figtree 500/14px. Two CTAs: outlined 'Flow for Android' (dark border) and lavender 'Download for macOS'.
 
-**`button-text-link`** — Inline text button, no background. Used for "Sign in" in the top nav and inline CTA links.
+### Platform Pill Button
+**Role:** Section header pills indicating available platforms
 
-**`button-icon-circular`** — 36px circular icon button. Background `{colors.canvas}`, hairline border, ink-color icon. Used for carousel arrows, share, "view more".
+Transparent fill, 1px white or Midnight Ink border, rounded 1000px (fully rounded). Figtree 500/14px text. Contains platform icon + name (Mac, Windows, iPhone, Android).
 
-**`text-link`** — Inline body links in `{colors.primary}` (the moss green). Underlined on press; the moss green inline link is one of the system's most distinctive small details.
+### Announcement Banner
+**Role:** Top-of-page promotional strip with case study link
 
-### Cards & Containers
+Full-bleed Deep Forest Teal (#034f46) background, white text at Figtree 500/14px. Centered single-line message with right-arrow link affordance. No border, no radius — spans viewport edge to edge.
 
-**`hero-band`** — Cream-canvas hero with a 6-6 grid: h1 + sub-headline + button row on the left, hero illustration card or product mockup card on the right. Vertical padding `{spacing.section}` (96px).
+### Dark Feature Section
+**Role:** Full dark section showcasing the product on multiple platforms
 
-**`hero-illustration-card`** — A larger card holding the hero's right-side artifact — sometimes a moss green-stroke line illustration on cream background, sometimes a dark code editor mockup. Background `{colors.canvas}` or `{colors.surface-dark}` depending on context, rounded `{rounded.xl}` (16px).
+Midnight Ink (#1a1a1a) background spanning full viewport width. White text for headlines (Figtree 600/32–48px) and body. White ghost 'Watch in action' button. Phone mockup floats right with dark UI inside. Curved arc of colorful app icons sweeps across the section.
 
-**`feature-card`** — Used in 3-up feature grids. Background `{colors.surface-card}` (#efe9de — slightly darker cream), rounded `{rounded.lg}` (12px), internal padding `{spacing.xl}` (32px). Carries a small icon at top, an `{typography.title-md}` headline, and a body description in `{typography.body-md}`.
+### Testimonial Logo Strip
+**Role:** Social proof band with client logos
 
-**`product-mockup-card-dark`** — Dark navy card showing actual Goated Documentation product chrome (chat interface, code editor, agent controls). Background `{colors.surface-dark}`, rounded `{rounded.lg}`, internal padding `{spacing.xl}` (32px). Carries text labels in `{colors.on-dark}` and product UI fragments below.
+Deep Forest Teal (#034f46) background, white text headline above logos. Logos rendered in white at varying sizes. Character illustration (flat illustration style) on left edge. Generous vertical padding 48–64px.
 
-**`code-window-card`** — A specialized dark card showing a code editor with line numbers, syntax-highlighted code in `{typography.code}` (JetBrains Mono), and sometimes a "Run" button or terminal output panel below. Background `{colors.surface-dark}` with `{colors.surface-dark-soft}` for the inner code block, rounded `{rounded.lg}`, padding `{spacing.lg}` (24px). The signature visual element of Goated Docs product pages.
+### Hero Section (Light)
+**Role:** Primary above-the-fold section with headline, subtext, and CTA
 
-**`model-comparison-card`** — Used on the homepage's "Which problem are you up against?" section comparing Opus / Sonnet / Haiku. Background `{colors.canvas}` with hairline border, rounded `{rounded.lg}`, internal padding `{spacing.xl}` (32px). Carries the model name, a short capability blurb, and a `{component.text-link}` to learn more.
+Cream Paper (#ffffeb) background, centered text block. Display headline in EB Garamond 64–120px with two-tone treatment: first half in Graphite Veil (#8a8a80), second half in Midnight Ink. Subtext in Figtree 400/18–20px Midnight Ink. Lavender CTA centered below. Decorative circular text path and waveform orb elements flank the headline.
 
-**`pricing-tier-card`** — Standard tier card. Background `{colors.canvas}` with hairline border, rounded `{rounded.lg}`, padding `{spacing.xl}` (32px). Carries the plan name in `{typography.title-lg}` (StyreneB), price in `{typography.display-sm}` (Copernicus serif!), feature checklist in `{typography.body-md}`, and a `{component.button-primary}` at the bottom.
+### Feature Card
+**Role:** Product feature highlight cards in grid layouts
 
-**`pricing-tier-card-featured`** — The featured tier (typically "Pro" or "Team"). Background flips to `{colors.surface-dark}`, text inverts to `{colors.on-dark}`. The dark surface IS the featured-tier signal.
+Cream Paper or White background, rounded 32px, 1px Stone Mist border. Padding 32px. Headline in Figtree 600/20–24px, body in 400/16px. May contain a product screenshot or illustration at 40px radius.
 
-**`callout-card-moss green`** — A full-bleed moss green card carrying a major call-to-action. Background `{colors.primary}` (#cc785c), text `{colors.on-primary}` (white), rounded `{rounded.lg}`, padding `{spacing.xxl}` (48px). The moss green surface IS the voltage; the CTA inside uses an inverted button style (cream/canvas button on moss green).
+### Decorative Orb Element
+**Role:** Floating circular UI elements that animate and orbit text
 
-**`connector-tile`** — Used on the connectors page's integration grid. Background `{colors.canvas}` with hairline border, rounded `{rounded.lg}`, padding 20px. Each tile carries a logo at top, a `{typography.title-sm}` connector name, and a short description.
+1600px radius (fully circular). Dark fill (#1a1a1a) or lavender fill. Contains waveform visualization, circular text path, or app icon. Functions as a brand-mark moment, not a functional component.
 
-### Inputs & Forms
+### Badge / Tag
+**Role:** Small status indicators, version tags, category labels
 
-**`text-input`** — Standard text input. Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-md}`, rounded `{rounded.md}` (8px), padding 10px × 14px, height 40px. 1px hairline border in `{colors.hairline}`.
+Rounded 1000px (pill shape) or 8px for square tags. 8–12px vertical padding, 12–16px horizontal. Figtree 500/12–14px. Filled variants: Deep Forest Teal background with white text. Outlined: border with colored text.
 
-**`text-input-focused`** — Focus state. Border thickens or shifts to `{colors.primary}` (moss green) for emphasis. Carries a 3px moss green-at-15%-alpha outer ring.
+### Underline Accent
+**Role:** Decorative highlight under key words in display headlines
 
-**`cookie-consent-card`** — Bottom-right floating dark cookie banner. Background `{colors.surface-dark}`, text `{colors.on-dark}`, rounded `{rounded.lg}`, padding `{spacing.lg}` (24px). One of the few places dark surface appears at small scale on cream pages.
-
-### Tags / Badges
-
-**`badge-pill`** — Small pill label used for category tags. Background `{colors.surface-card}`, text `{colors.ink}`, type `{typography.caption}` (13px / 500), rounded `{rounded.pill}`, padding 4px × 12px.
-
-**`badge-moss green`** — Moss green-fill badge for "NEW", "BETA", featured highlights. Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.caption-uppercase}` (12px / 500 / 1.5px tracking), rounded `{rounded.pill}`, padding 4px × 12px.
-
-### Tab / Filter
-
-**`category-tab`** + **`category-tab-active`** — Used in sub-nav rows on solutions / connectors pages. Inactive: transparent background, `{colors.muted}` text. Active: `{colors.surface-card}` background, `{colors.ink}` text. Padding 8px × 14px, rounded `{rounded.md}`.
-
-### CTA / Footer
-
-**`cta-band-moss green`** — A pre-footer "Try Goated Documentation" CTA card. Full-width moss green fill, white type, rounded `{rounded.lg}`, padding 64px. Carries an h2 in `{typography.display-sm}` (still serif!), a sub-line, and a cream-button CTA.
-
-**`cta-band-dark`** — Alternative pre-footer band on developer-focused pages. Background `{colors.surface-dark}`, text `{colors.on-dark}`, rounded `{rounded.lg}`, padding 64px. Often pairs with a code-window card.
-
-**`footer`** — Dark navy footer that closes every page. Background `{colors.surface-dark}` (#181715), text `{colors.on-dark-soft}`. 4-column link list at desktop covering Product / Company / Resources / Legal. Vertical padding 64px. The Goated goat-mark + "Goated" wordmark sits at the top in `{colors.on-dark}`. The footer never inverts.
+Lavender Whisper (#f0d7ff) rounded rectangle or stroke beneath a word in the headline. 4–6px height, extends slightly beyond text width. Applied to power words like 'faster' in '4x faster than typing'.
 
 ## Do's and Don'ts
 
 ### Do
-- Anchor every page on the cream canvas. Pure white reads as "any other AI tool"; the warm tint is the brand differentiator.
-- Use Copernicus serif for every display headline. Pair with StyreneB sans body. Negative letter-spacing on display sizes is non-negotiable.
-- Reserve `{colors.primary}` (moss green) for primary CTAs and full-bleed `{component.callout-card-moss green}` moments. Don't paint accent moments moss green elsewhere.
-- Use `{component.product-mockup-card-dark}` and `{component.code-window-card}` to show actual Goated Documentation product chrome. Don't paint marketing illustrations of code when you can show real code.
-- Pair `{component.feature-card}` (cream) with `{component.product-mockup-card-dark}` (navy) in alternating bands. The cream-to-dark rhythm is the brand's pacing mechanism.
-- Use the Goated goat-mark glyph as the brand wordmark prefix. Never invert the mark to white-on-dark within the wordmark itself.
-- Apply `{spacing.section}` (96px) between major bands.
+- Use EB Garamond exclusively for display headlines at 48px and above — it is the brand's most recognizable choice and should not be substituted with sans-serif at display sizes
+- Apply Lavender Whisper (#f0d7ff) for the single primary CTA on any view — never use it for more than one action per screen
+- Set body text in Figtree at 16px/1.3 — the compact line-height is intentional and contributes to the dense editorial feel
+- Toggle between cream (#ffffeb) and Midnight Ink (#1a1a1a) for full section backgrounds — the contrast between light and dark bands is structural, not decorative
+- Round all buttons, nav, and controls at 14px — this is the system's control radius and creates visual consistency across the interface
+- Use 64–80px vertical gaps between major sections to let the serif headlines breathe
+- Render headlines in two tones (Graphite Veil + Midnight Ink) for editorial impact on hero sections
+- Include a 1px Midnight Ink border on lavender buttons to define them against the cream background
 
 ### Don't
-- Don't use cool grays or pure white for canvas. Cream is the brand.
-- Don't bold serif display weight. Copernicus at 700 reads as bombastic; the system stays at 400.
-- Don't use cool blue or saturated cyan as a brand accent. The moss green is the brand voltage.
-- Don't put moss green everywhere. The moss green is scarce on individual elements and generous only on full-bleed moss green callout cards.
-- Don't use Inter for display headlines. The serif character is the brand voice.
-- Don't repeat the same surface mode in two consecutive bands. The pacing alternates: cream → cream-card → dark-mockup → cream → moss green-callout → dark-footer.
-- Don't add hover state styling beyond what the system already encodes — primary darkens on press; nothing else changes.
+- Do not use pure black (#000000) for text or surfaces — Midnight Ink (#1a1a1a) is the correct dark token for warmth
+- Do not apply the serif (EB Garamond) to body text, UI labels, or anything below 32px — Figtree owns the functional text layer
+- Do not use Lavender Whisper for large filled backgrounds, banners, or section backgrounds — it is a CTA accent, not a surface
+- Do not place white or light text on Lavender Whisper — contrast is insufficient; always pair lavender with Midnight Ink text
+- Do not introduce additional accent hues (blues, greens, reds) for buttons or states — the system is a duotone plus amber, and new chromatic colors break the palette
+- Do not use sharp corners (0–4px radius) on cards, buttons, or nav — the system is consistently rounded at 14px+
+- Do not stack multiple dark sections consecutively without a cream break between them — the light/dark alternation is rhythmic and structural
+- Do not use display sizes below 48px or above 120px — EB Garamond's tracking is calibrated for that range
 
-## Responsive Behavior
+## Surfaces
 
-### Breakpoints
+| Level | Name | Value | Purpose |
+|-------|------|-------|---------|
+| 0 | Cream Paper | `#ffffeb` | Base page canvas — the dominant light surface across hero, feature, and CTA sections |
+| 1 | White Nav Surface | `#ffffff` | Navigation bar and elevated card surfaces that need to lift off the cream |
+| 2 | Stone Mist Surface | `#e4e4d0` | Muted secondary surfaces, subtle panel backgrounds on cream |
+| 3 | Lavender Wash | `#f0d7ff` | Accent surface for CTA buttons and highlight zones |
+| 4 | Deep Forest Band | `#034f46` | Dark accent section — announcement bars, testimonial/logo strips |
+| 5 | Midnight Ink | `#1a1a1a` | Full dark sections — feature showcases with phone mockups and app icon arcs |
 
-| Name | Width | Key Changes |
-|---|---|---|
-| Mobile | < 768px | Hamburger nav; hero h1 64→32px; hero-illustration-card stacks below content; feature grids 1-up; connector tiles 2-up; pricing 1-up; footer 4 cols → 1 |
-| Tablet | 768–1024px | Top nav stays horizontal but tightens; feature cards 2-up; connector tiles 3-up; pricing 2-up |
-| Desktop | 1024–1440px | Full top-nav with all menu items; 3-up feature cards; 4-up or 6-up connector tiles; 3-up pricing tiers |
-| Wide | > 1440px | Same as desktop with more outer breathing room; max content width caps at 1200px |
+## Elevation
 
-### Touch Targets
-- `{component.button-primary}` at minimum 40 × 40px.
-- `{component.button-icon-circular}` at exactly 36 × 36 — slightly under WCAG 44 but visually centered.
-- `{component.text-input}` height is 40px.
-- Connector tile entire card area is tappable; effective tap area >> 44px.
+- **Floating Navigation Bar:** `0 2px 8px rgba(0,0,0,0.08) — subtle lift to separate the white pill from cream/dark backgrounds`
 
-### Collapsing Strategy
-- Top nav collapses to hamburger at < 768px; menu opens as a full-screen cream sheet.
-- Hero band's 6-6 grid collapses to single-column on mobile — h1 + sub-head + buttons first, then the illustration / mockup card below.
-- Feature grids reduce columns rather than scaling cards down.
-- Pricing tier cards collapse 4 → 2 → 1; featured-tier dark surface stays visually distinct at every breakpoint.
-- Code-window cards retain code legibility at every breakpoint by allowing horizontal scroll within the card rather than wrapping code lines.
+## Imagery
 
-### Image Behavior
-- Code blocks inside dark mockups stay at fixed font-size; horizontal scroll on mobile rather than wrapping.
-- Hero illustrations scale proportionally; line-art strokes thin slightly on mobile.
-- Avatar photos in testimonials crop to circles at every breakpoint.
+Illustration-driven with selective product mockup photography. The hero uses a flat geometric character illustration (woman with oversized binoculars) and decorative circular text paths. Dark sections feature a phone mockup with dark UI, surrounded by a sweeping arc of 15+ colorful third-party app icons (Slack, Notion, Gmail, GitHub, Linear, etc.) that curve across the dark background. No lifestyle photography. Logos appear as white marks on teal bands. Illustrations are flat, brand-colored (orange, red, teal), and function as editorial accents rather than explanatory diagrams. The visual language is more 'design publication' than 'SaaS product page' — text and type carry the weight, imagery punctuates.
 
-## Iteration Guide
+## Layout
 
-1. Focus on ONE component at a time. Reference its YAML key (`{component.feature-card}`, `{component.code-window-card}`).
-2. Variants of an existing component (`-active`, `-disabled`, `-focused`) live as separate entries in `components:`.
-3. Use `{token.refs}` everywhere — never inline hex.
-4. Never document hover. Default and Active/Pressed states only.
-5. Display headlines stay Copernicus serif 400 with negative tracking. Body stays StyreneB / Inter 400. The split is unbreakable.
-6. Cream + moss green + dark navy is the trinity. Don't introduce a fourth surface tone (no purple cards, no green sections).
-7. When in doubt about emphasis: bigger Copernicus serif before bolder weight.
+Max-width 1200px centered content with full-bleed colored bands. The page alternates between cream and dark sections as its primary structural device. Hero is centered single-column with flanking decorative orbs. Dark feature section uses asymmetric two-column: text-left, phone-mockup-right with a diagonal app-icon arc connecting them. Testimonial band is full-bleed teal with centered logo strip. Generous 64–80px section gaps create breathing room. Navigation is a floating white pill at the top of each section, rounded 14px, with a thin border. Content is never crammed — the layout prioritizes typographic impact over information density.
 
-## Known Gaps
+## Agent Prompt Guide
 
-- Copernicus and StyreneB are licensed Goated typefaces and not available as public web fonts. Substitutes (Tiempos Headline / Cormorant Garamond / EB Garamond for serif; Inter / Söhne for sans) are documented in the typography section.
-- The Goated radial-goat-mark is a brand glyph rendered as inline SVG; it's not formalized as a system token here. Treat it as a logo asset.
-- Animation and transition timings (chat message reveal, code block typewriter effect on the homepage, agentic-flow diagram animations) are not in scope.
-- Form validation states beyond `{component.text-input-focused}` are not extracted — error / success states would need a sign-up or feedback flow to confirm.
-- The actual Goated Documentation product surface (claude.ai chat interface) shares some tokens with the marketing site but adds many product-specific components (chat bubbles, message tools, file upload chips, conversation history sidebar) that are out of scope for this marketing-surface document.
-- The "agent" / "computer use" demo cards on certain pages display animated Goated Documentation controlling a browser — the static screenshot doesn't fully capture the animation chrome.
+**Quick Color Reference**
+- Canvas: #ffffeb (cream)
+- Dark surface: #1a1a1a (midnight ink)
+- Text primary: #1a1a1a
+- Text secondary: #8a8a80 (graphite veil)
+- Border: #1a1a1a or #e4e4d0 (stone mist)
+- Accent: #f0d7ff (lavender whisper)
+- primary action: #f0d7ff (filled action)
 
+**Example Component Prompts**
 
-## Goated Implementation Checklist
+1. Build a hero section: cream canvas (#ffffeb), centered text. Headline at 64px EB Garamond weight 400, two-tone — first half #8a8a80, second half #1a1a1a, letter-spacing -0.05em. Subtext at 18px Figtree 400 in #1a1a1a. Lavender CTA button (#f0d7ff fill, #1a1a1a border, #1a1a1a text, 14px radius, 10px 18px padding, Figtree 600/14px). 80px vertical padding top and bottom.
 
-### Base app shell
-- Use the cream canvas as the page background.
-- Use surface-soft for the sidebar and app chrome.
-- Use surface-card for dashboard cards, ticket cards, and empty states.
-- Use moss green for active navigation, primary buttons, focus rings, and selected states.
-- Use stone grey for inactive icons, metadata, dividers, and secondary labels.
+2. Build a ghost outlined button: transparent fill, 1px #1a1a1a border, 14px radius, 10px 18px padding, text in Figtree 600/14px #1a1a1a. Use for secondary actions like 'Watch in action' or 'Try Flow'.
 
-### Ticket / task cards
-- Background: `surface-card` / `#EFE9DE`.
-- Border: `hairline` / `#E6DFD8`.
-- Radius: 12px.
-- Primary selected state: soft moss background `#DDE3D2` with primary text `#556246`.
-- Priority badges should be quiet. Use moss for active/healthy, stone for neutral, amber only for warnings, red only for true blockers.
+3. Build a navigation bar: white (#ffffff) background, 14px radius, 1px #e4e4d0 border, padding 8px 12px internally. Brand mark 'Flow' with bar-chart icon in Figtree 600/16px #1a1a1a. Nav links in Figtree 500/14px #1a1a1a. Right side: outlined 'Flow for Android' (1px #1a1a1a border) and lavender 'Download for macOS' button.
 
-### Realtime collaboration UI
-- Presence dots use moss green.
-- User cursors can use soft natural variants, but avoid neon colors.
-- AI processing panels should use dark product surfaces.
-- Generated-doc previews can alternate between cream cards and dark code/mockup cards.
+4. Build a dark feature section: #1a1a1a background spanning full width. Two-column layout — left: headline in Figtree 600/32px white, body in Figtree 400/16px #8a8a80, white ghost 'Watch in action' button. Right: phone mockup with dark UI, surrounded by curved arc of colorful app icons. 80px vertical padding.
 
-### Copy tone
-- Use clear product language first.
-- Goat-themed language should be light and rare: “activity trail”, “project trail”, “source herd”, “Goat is reading project events…”.
-- Avoid turning serious workflow surfaces into jokes.
+5. Build a testimonial logo band: full-bleed #034f46 background. Centered headline in white Figtree 500/16px. Row of 6–8 white client logos (Groupon, Vercel, Replit, Nuuly, Warp, Rivian) at consistent height. Flat character illustration on the left edge. 48px vertical padding.
 
-### Final decision
-The primary accent is **moss green `#6F7C5D`**. Grey/stone is the supporting neutral system, not the main accent.
+## Typographic Signature
+
+The EB Garamond + Figtree pairing is the design system's most load-bearing decision. EB Garamond is a Renaissance-era serif with high contrast and calligraphic terminals — at 64–120px with negative tracking, it reads as editorial, premium, and human. It contrasts deliberately with the geometric Figtree sans-serif that handles all functional text. This split mirrors magazine design: serif for the 'story', sans for the 'interface'. Never merge these into a single typeface system. Display sizes require serif; UI sizes require sans. The two-tone headline treatment (Graphite Veil for the setup, Midnight Ink for the punch) adds a second axis of typographic hierarchy beyond size and weight.
+
+## Section Rhythm
+
+The page alternates cream → dark → cream → teal-band → cream in a deliberate rhythm. Each full-bleed color band is a breathing moment that resets the reader's eye. Dark sections are reserved for product demonstration (phone mockup, app arc). Teal sections are reserved for social proof (logos, testimonials). Cream sections carry the editorial headlines and feature descriptions. An AI agent should treat this 3-state color rhythm (cream/dark/teal) as a layout primitive and assign new content sections to one of these three modes based on their function.
+
+## Similar Brands
+
+- **Linear** — Same editorial-meets-tech aesthetic with serif display headlines and a restrained cream/dark palette, though Linear uses a cooler cream and lacks the lavender accent
+- **Stripe** — Similar generous spacing, rounded controls, and duotone accent strategy with a single warm color punctuating a neutral canvas
+- **Notion** — Comfortable density, cream-toned warmth, and a preference for borders over shadows to define surface boundaries
+- **Pitch** — Editorial typography-led layout with alternating light/dark sections and a single soft accent color for CTAs
+- **Arc browser** — Cream canvas, playful serif/sans pairing, and a lavender-to-teal accent palette that signals creative rather than corporate
+
+## Quick Start
+
+### CSS Custom Properties
+
+```css
+:root {
+  /* Colors */
+  --color-cream-paper: #ffffeb;
+  --color-midnight-ink: #1a1a1a;
+  --color-pure-black: #000000;
+  --color-white: #ffffff;
+  --color-stone-mist: #e4e4d0;
+  --color-graphite-veil: #8a8a80;
+  --color-smoke: #5f5f59;
+  --color-charcoal: #222222;
+  --color-charcoal-mist: #333333;
+  --color-deep-forest-teal: #034f46;
+  --color-lavender-whisper: #f0d7ff;
+  --color-amber-pulse: #ffa946;
+
+  /* Typography — Font Families */
+  --font-figtree: 'Figtree', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-eb-garamond: 'EB Garamond', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-apple-color-emoji: 'Apple Color Emoji', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-caption: 14px;
+  --leading-caption: 1.3;
+  --text-body: 16px;
+  --leading-body: 1.3;
+  --text-subheading: 20px;
+  --leading-subheading: 1.3;
+  --text-heading-sm: 24px;
+  --leading-heading-sm: 1;
+  --text-heading: 32px;
+  --leading-heading: 1;
+  --text-heading-lg: 48px;
+  --leading-heading-lg: 0.95;
+  --tracking-heading-lg: -0.07px;
+  --text-display: 64px;
+  --leading-display: 0.95;
+  --tracking-display: -0.05px;
+  --text-display-xl: 120px;
+  --leading-display-xl: 0.85;
+  --tracking-display-xl: -0.13px;
+
+  /* Typography — Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --spacing-unit: 8px;
+  --spacing-8: 8px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+  --spacing-104: 104px;
+  --spacing-128: 128px;
+  --spacing-168: 168px;
+  --spacing-224: 224px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+  --section-gap: 64-80px;
+  --card-padding: 32px;
+  --element-gap: 8-16px;
+
+  /* Border Radius */
+  --radius-lg: 8px;
+  --radius-xl: 14px;
+  --radius-3xl: 32px;
+  --radius-3xl-2: 40px;
+  --radius-full: 64px;
+  --radius-full-2: 80px;
+  --radius-full-3: 992px;
+  --radius-full-4: 1000px;
+  --radius-full-5: 1600px;
+
+  /* Named Radii */
+  --radius-nav: 14px;
+  --radius-cards: 32px;
+  --radius-badges: 1000px;
+  --radius-images: 40px;
+  --radius-buttons: 14px;
+  --radius-smallbadges: 8px;
+  --radius-decorativeorbs: 1600px;
+
+  /* Surfaces */
+  --surface-cream-paper: #ffffeb;
+  --surface-white-nav-surface: #ffffff;
+  --surface-stone-mist-surface: #e4e4d0;
+  --surface-lavender-wash: #f0d7ff;
+  --surface-deep-forest-band: #034f46;
+  --surface-midnight-ink: #1a1a1a;
+}
+```
+
+### Tailwind v4
+
+```css
+@theme {
+  /* Colors */
+  --color-cream-paper: #ffffeb;
+  --color-midnight-ink: #1a1a1a;
+  --color-pure-black: #000000;
+  --color-white: #ffffff;
+  --color-stone-mist: #e4e4d0;
+  --color-graphite-veil: #8a8a80;
+  --color-smoke: #5f5f59;
+  --color-charcoal: #222222;
+  --color-charcoal-mist: #333333;
+  --color-deep-forest-teal: #034f46;
+  --color-lavender-whisper: #f0d7ff;
+  --color-amber-pulse: #ffa946;
+
+  /* Typography */
+  --font-figtree: 'Figtree', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-eb-garamond: 'EB Garamond', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-apple-color-emoji: 'Apple Color Emoji', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-caption: 14px;
+  --leading-caption: 1.3;
+  --text-body: 16px;
+  --leading-body: 1.3;
+  --text-subheading: 20px;
+  --leading-subheading: 1.3;
+  --text-heading-sm: 24px;
+  --leading-heading-sm: 1;
+  --text-heading: 32px;
+  --leading-heading: 1;
+  --text-heading-lg: 48px;
+  --leading-heading-lg: 0.95;
+  --tracking-heading-lg: -0.07px;
+  --text-display: 64px;
+  --leading-display: 0.95;
+  --tracking-display: -0.05px;
+  --text-display-xl: 120px;
+  --leading-display-xl: 0.85;
+  --tracking-display-xl: -0.13px;
+
+  /* Spacing */
+  --spacing-8: 8px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-80: 80px;
+  --spacing-96: 96px;
+  --spacing-104: 104px;
+  --spacing-128: 128px;
+  --spacing-168: 168px;
+  --spacing-224: 224px;
+
+  /* Border Radius */
+  --radius-lg: 8px;
+  --radius-xl: 14px;
+  --radius-3xl: 32px;
+  --radius-3xl-2: 40px;
+  --radius-full: 64px;
+  --radius-full-2: 80px;
+  --radius-full-3: 992px;
+  --radius-full-4: 1000px;
+  --radius-full-5: 1600px;
+}
+```

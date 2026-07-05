@@ -42,6 +42,7 @@ const state = {
   rangeStart: 0,
   rangeEnd: 15,
   rangeAnchor: null,
+  studioTimeline: null,
 };
 
 const analyzeForm = document.getElementById("analyze-form");
@@ -89,13 +90,9 @@ const studioEmpty = document.getElementById("studio-empty");
 const studioWorkspace = document.getElementById("studio-workspace");
 const studioJobSelect = document.getElementById("studio-job-select");
 const studioVideo = document.getElementById("studio-video");
+const studioClipTimelineEl = document.getElementById("studio-clip-timeline");
 const transcriptList = document.getElementById("transcript-list");
 const transcriptSource = document.getElementById("transcript-source");
-const clipStartInput = document.getElementById("clip-start");
-const clipEndInput = document.getElementById("clip-end");
-const setStartBtn = document.getElementById("set-start-btn");
-const setEndBtn = document.getElementById("set-end-btn");
-const previewRangeBtn = document.getElementById("preview-range-btn");
 const clipTitleInput = document.getElementById("clip-title");
 const clipGroupSelect = document.getElementById("clip-group");
 const clipTagsInput = document.getElementById("clip-tags");
@@ -104,6 +101,12 @@ const saveLocalCheckbox = document.getElementById("save-local");
 const saveClipBtn = document.getElementById("save-clip-btn");
 const runAiBtn = document.getElementById("run-ai-btn");
 const studioStatus = document.getElementById("studio-status");
+const pipelineLogs = document.getElementById("pipeline-logs");
+const pipelineLogOutput = document.getElementById("pipeline-log-output");
+const refreshPipelineLogsBtn = document.getElementById("refresh-pipeline-logs-btn");
+const studioLogs = document.getElementById("studio-logs");
+const studioLogOutput = document.getElementById("studio-log-output");
+const refreshStudioLogsBtn = document.getElementById("refresh-studio-logs-btn");
 
 document.querySelectorAll("[data-view]").forEach((button) => {
   button.addEventListener("click", () => setView(button.dataset.view));
@@ -128,16 +131,21 @@ librarySearch.addEventListener("input", debounce(() => {
 }, 250));
 
 studioJobSelect.addEventListener("change", () => loadStudioJob(studioJobSelect.value));
-setStartBtn.addEventListener("click", () => setRangeFromPlayhead("start"));
-setEndBtn.addEventListener("click", () => setRangeFromPlayhead("end"));
-previewRangeBtn.addEventListener("click", previewRange);
-clipStartInput.addEventListener("change", () => syncRangeFromInputs());
-clipEndInput.addEventListener("change", () => syncRangeFromInputs());
+studioVideo.addEventListener("click", () => {
+  if (studioVideo.paused) studioVideo.play();
+  else studioVideo.pause();
+});
 saveClipBtn.addEventListener("click", saveManualClip);
 runAiBtn.addEventListener("click", runAiOnJob);
 downloadClipBtn.addEventListener("click", downloadSelectedClip);
 saveLocalBtn.addEventListener("click", saveSelectedToDatabase);
 saveMetaBtn.addEventListener("click", updateSelectedMetadata);
+refreshPipelineLogsBtn.addEventListener("click", () => {
+  if (state.currentJobId) loadJobLogs(state.currentJobId, pipelineLogOutput, pipelineLogs);
+});
+refreshStudioLogsBtn.addEventListener("click", () => {
+  if (state.studioJobId) loadJobLogs(state.studioJobId, studioLogOutput, studioLogs);
+});
 
 studioVideo.addEventListener("timeupdate", () => {
   highlightTranscriptAtTime(studioVideo.currentTime);
@@ -146,9 +154,23 @@ studioVideo.addEventListener("timeupdate", () => {
 init();
 
 async function init() {
+  initStudioTimeline();
   await refreshHealth();
   await loadLibrary();
   await loadStudioJobs();
+}
+
+function initStudioTimeline() {
+  if (!studioClipTimelineEl || state.studioTimeline) return;
+  state.studioTimeline = new ClipTimeline(studioClipTimelineEl, {
+    video: studioVideo,
+    onRangeChange: (start, end) => {
+      state.rangeStart = start;
+      state.rangeEnd = end;
+      highlightRange();
+    },
+    onSeek: (time) => highlightTranscriptAtTime(time),
+  });
 }
 
 async function refreshHealth() {
@@ -193,54 +215,90 @@ async function startAnalysis() {
     if (!response.ok) throw new Error(payload.detail || "Failed to start.");
 
     state.currentJobId = payload.job.id;
-    pollJob(state.currentJobId);
+    pipelineLogs.classList.remove("hidden");
+    loadJobLogs(state.currentJobId, pipelineLogOutput, pipelineLogs);
+    pollJob(state.currentJobId, "analyze");
   } catch (error) {
     showInlineStatus(error.message, "error");
     analyzeBtn.disabled = false;
-    analyzeBtn.textContent = "Start";
+    analyzeBtn.textContent = "Start import";
   }
 }
 
-function pollJob(jobId) {
+function pollJob(jobId, context = "analyze") {
   clearInterval(state.pollTimer);
   state.pollTimer = setInterval(async () => {
     try {
       const response = await fetch(`/api/jobs/${jobId}`);
       const job = (await response.json()).job;
       updatePipelineUI(job);
+      loadJobLogs(jobId, context === "studio" ? studioLogOutput : pipelineLogOutput, context === "studio" ? studioLogs : pipelineLogs);
 
-      if (job.status === "prepared" && job.stage === "prepared" && !job.auto_analyze) {
+      if (job.status === "prepared" && job.stage === "prepared" && !job.auto_analyze && !job.analysis_error) {
         clearInterval(state.pollTimer);
-        finishAnalyze(job, "Transcript ready. Clip manually in Studio or run AI.");
+        if (context === "analyze") finishAnalyze(job, "Transcript ready. Clip manually in Studio or run AI.");
+        if (context === "studio") finishStudioPoll(job, "Transcript ready.");
+      }
+
+      if (job.status === "prepared" && job.analysis_error) {
+        clearInterval(state.pollTimer);
+        const message = job.analysis_error;
+        if (context === "analyze") {
+          finishAnalyze(job, "Import ready, but AI analysis failed. Open Studio to retry or clip manually.");
+          showInlineStatus(message, "error");
+        } else {
+          finishStudioPoll(job, message, "error");
+        }
       }
 
       if (job.status === "completed") {
         clearInterval(state.pollTimer);
-        finishAnalyze(job, `${job.clips.length} clips indexed in your database.`);
+        const count = (job.clips || []).length;
+        if (context === "analyze") {
+          finishAnalyze(job, `${count} clips indexed in your database.`);
+        } else {
+          finishStudioPoll(job, `AI analysis complete — ${count} clips indexed.`, "success");
+          await loadStudioJob(jobId);
+        }
         await loadLibrary();
         await loadStudioJobs();
       }
 
       if (job.status === "failed") {
         clearInterval(state.pollTimer);
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = "Start";
-        showInlineStatus(job.error || "Job failed.", "error");
+        const message = job.error || "Job failed.";
+        if (context === "analyze") {
+          analyzeBtn.disabled = false;
+          analyzeBtn.textContent = "Start import";
+          showInlineStatus(message, "error");
+        } else {
+          finishStudioPoll(job, message, "error");
+        }
       }
     } catch (_error) {
       clearInterval(state.pollTimer);
-      analyzeBtn.disabled = false;
-      analyzeBtn.textContent = "Start";
-      showInlineStatus("Lost connection while polling.", "error");
+      if (context === "analyze") {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "Start import";
+        showInlineStatus("Lost connection while polling.", "error");
+      } else {
+        finishStudioPoll(null, "Lost connection while polling.", "error");
+      }
     }
   }, 2000);
 }
 
+function finishStudioPoll(job, message, tone = "info") {
+  runAiBtn.disabled = false;
+  if (job) updateRunAiButton(job);
+  showStudioStatus(message, tone === "info" ? "info" : tone);
+}
+
 function finishAnalyze(job, message) {
   analyzeBtn.disabled = false;
-  analyzeBtn.textContent = "Start";
+  analyzeBtn.textContent = "Start import";
   pipelineActions.classList.remove("hidden");
-  showInlineStatus(message, "success");
+  showInlineStatus(message, job.analysis_error ? "error" : "success");
   state.studioJobId = job.id;
 }
 
@@ -281,7 +339,8 @@ async function loadStudioJobs() {
   jobs.forEach((job) => {
     const option = document.createElement("option");
     option.value = job.id;
-    option.textContent = job.video_title || job.youtube_url;
+    const statusLabel = job.analysis ? "AI analyzed" : job.analysis_error ? "AI failed" : "No AI";
+    option.textContent = `${job.video_title || job.youtube_url} · ${statusLabel}`;
     studioJobSelect.appendChild(option);
   });
 
@@ -317,7 +376,31 @@ async function loadStudioJob(jobId) {
   state.rangeStart = 0;
   state.rangeEnd = Math.min(15, segmentEnd(state.studioSegments.at(-1)) || 15);
   updateRangeUI();
-  runAiBtn.classList.toggle("hidden", job.status === "completed" && job.analysis);
+
+  studioVideo.onloadedmetadata = () => {
+    state.studioTimeline?.setDuration(studioVideo.duration);
+    state.studioTimeline?.setRange(state.rangeStart, state.rangeEnd, { silent: true });
+  };
+  if (studioVideo.readyState >= 1) {
+    state.studioTimeline?.setDuration(studioVideo.duration);
+  }
+
+  updateRunAiButton(job);
+  studioLogs.classList.remove("hidden");
+  loadJobLogs(jobId, studioLogOutput, studioLogs);
+
+  if (job.analysis_error) {
+    showStudioStatus(job.analysis_error, "error");
+  } else {
+    studioStatus.classList.add("hidden");
+  }
+}
+
+function updateRunAiButton(job) {
+  if (!job) return;
+  const hasAnalysis = Boolean(job.analysis);
+  runAiBtn.textContent = hasAnalysis ? "Re-run AI analysis" : "Run AI analysis";
+  runAiBtn.classList.remove("hidden");
 }
 
 function renderTranscript() {
@@ -390,33 +473,27 @@ function setRangeFromPlayhead(edge) {
   if (edge === "start") state.rangeStart = time;
   if (edge === "end") state.rangeEnd = Math.max(time, state.rangeStart + 1);
   updateRangeUI();
-  highlightRange();
 }
 
 function syncRangeFromInputs() {
-  state.rangeStart = parseTimeInput(clipStartInput.value);
-  state.rangeEnd = Math.max(parseTimeInput(clipEndInput.value), state.rangeStart + 1);
+  state.rangeStart = ClipTimeline.parseTime(
+    studioClipTimelineEl?.querySelector("[data-tl-start-input]")?.value || "0"
+  );
+  state.rangeEnd = Math.max(
+    ClipTimeline.parseTime(studioClipTimelineEl?.querySelector("[data-tl-end-input]")?.value || "0"),
+    state.rangeStart + 1
+  );
+  state.studioTimeline?.setRange(state.rangeStart, state.rangeEnd, { silent: true });
   highlightRange();
 }
 
 function updateRangeUI() {
-  clipStartInput.value = formatTime(state.rangeStart);
-  clipEndInput.value = formatTime(state.rangeEnd);
+  state.studioTimeline?.setRange(state.rangeStart, state.rangeEnd, { silent: true });
   highlightRange();
 }
 
 function previewRange() {
-  syncRangeFromInputs();
-  studioVideo.currentTime = state.rangeStart;
-  studioVideo.play();
-  const stopAt = state.rangeEnd;
-  const onTime = () => {
-    if (studioVideo.currentTime >= stopAt) {
-      studioVideo.pause();
-      studioVideo.removeEventListener("timeupdate", onTime);
-    }
-  };
-  studioVideo.addEventListener("timeupdate", onTime);
+  state.studioTimeline?._previewRange();
 }
 
 async function saveManualClip() {
@@ -455,16 +532,47 @@ async function saveManualClip() {
 async function runAiOnJob() {
   if (!state.studioJobId) return;
   runAiBtn.disabled = true;
-  showStudioStatus("Running AI auto-clip…", "info");
+  showStudioStatus("Running AI analysis…", "info");
+  studioLogs.classList.remove("hidden");
   try {
-    const response = await fetch(`/api/jobs/${state.studioJobId}/analyze-ai`, { method: "POST" });
+    const response = await fetch(`/api/jobs/${state.studioJobId}/analyze-ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ replace_existing: true }),
+    });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "AI analysis failed.");
-    pollJob(state.studioJobId);
+    pollJob(state.studioJobId, "studio");
   } catch (error) {
     showStudioStatus(error.message, "error");
     runAiBtn.disabled = false;
   }
+}
+
+async function loadJobLogs(jobId, outputEl, containerEl) {
+  if (!jobId || !outputEl) return;
+  try {
+    const response = await fetch(`/api/jobs/${jobId}/logs?limit=200`);
+    const data = await response.json();
+    const logs = data.logs || [];
+    if (containerEl) containerEl.classList.toggle("hidden", logs.length === 0);
+    outputEl.textContent = formatLogs(logs);
+    outputEl.scrollTop = outputEl.scrollHeight;
+  } catch (_error) {
+    outputEl.textContent = "Unable to load logs.";
+  }
+}
+
+function formatLogs(logs) {
+  if (!logs.length) return "No log entries yet.";
+  return logs
+    .map((entry) => {
+      const details = entry.details && Object.keys(entry.details).length
+        ? `\n  ${JSON.stringify(entry.details, null, 2).replaceAll("\n", "\n  ")}`
+        : "";
+      return `[${entry.level?.toUpperCase() || "INFO"}] ${entry.ts} · ${entry.event}\n${entry.message}${details}`;
+    })
+    .join("\n\n");
 }
 
 async function loadLibrary() {
@@ -543,7 +651,7 @@ function renderLibrary() {
       <div>
         <p class="clip-row__title">${escapeHtml(clip.title)}</p>
         <div class="clip-row__meta">
-          <span class="badge badge-accent">${escapeHtml(GROUP_LABELS[clip.group] || clip.group)}</span>
+          <span class="badge badge-teal">${escapeHtml(GROUP_LABELS[clip.group] || clip.group)}</span>
           <span class="badge badge-neutral">${clip.source_type === "manual" ? "Manual" : "AI"}</span>
         </div>
       </div>

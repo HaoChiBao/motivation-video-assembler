@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Create Linear project + issues and optionally a Notion spec page.
+"""Sync Linear project + issues and optionally update Notion spec page.
 
 Requires:
   LINEAR_API_KEY  — https://linear.app/settings/api
-  NOTION_TOKEN    — optional, for Notion page creation
-  NOTION_PARENT_PAGE_ID — optional parent page for Notion wiki
+  NOTION_TOKEN    — optional, for Notion page creation/update
+  NOTION_PARENT_PAGE_ID — optional parent for new Notion page
+  NOTION_PAGE_ID  — optional existing spec page to append updates
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 LINEAR_API = "https://api.linear.app/graphql"
-NOTION_API = "https://api.notion.com/v1/pages"
+NOTION_API = "https://api.notion.com/v1"
 
 TEAM_NAME = "Yang Space"
 PROJECT_NAME = "Motivation Video Assembler"
@@ -51,7 +52,7 @@ def notion_request(method: str, path: str, body: dict | None = None) -> dict:
     if not token:
         raise SystemExit("NOTION_TOKEN is not set.")
 
-    url = f"https://api.notion.com/v1/{path.lstrip('/')}"
+    url = f"{NOTION_API}/{path.lstrip('/')}"
     payload = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
         url,
@@ -113,6 +114,32 @@ def find_project(name: str) -> dict | None:
     return nodes[0] if nodes else None
 
 
+def update_project(project_id: str) -> None:
+    linear_request(
+        """
+        mutation($id: String!, $input: ProjectUpdateInput!) {
+          projectUpdate(id: $id, input: $input) { project { id url } }
+        }
+        """,
+        {
+            "id": project_id,
+            "input": {
+                "summary": "YouTube speech → transcript → AI/manual clips → local database.",
+                "description": (
+                    "## Motivation Video Assembler\n\n"
+                    "Import motivational YouTube URLs, extract timestamped transcripts, "
+                    "clip manually in Studio (dual-bar timeline) or via GPT-5.5 two-pass AI, "
+                    "and browse/search/download from a local clip database.\n\n"
+                    f"**Repo:** {GITHUB_REPO}\n\n"
+                    "**Stack:** Python · FastAPI · OpenAI GPT-5.5 · yt-dlp · ffmpeg · Wispr Flow UI\n\n"
+                    "**Latest (Jul 2026):** Wispr Flow design, ClipTimeline scrubber, job logs, "
+                    "optional AI on import, re-run analysis on any saved video."
+                ),
+            },
+        },
+    )
+
+
 def create_project(team_id: str, lead_id: str) -> dict:
     data = linear_request(
         """
@@ -128,44 +155,86 @@ def create_project(team_id: str, lead_id: str) -> dict:
                 "icon": PROJECT_ICON,
                 "teamIds": [team_id],
                 "leadId": lead_id,
-                "summary": "YouTube motivational speech → AI moment analysis → ffmpeg clips → preview library.",
-                "description": (
-                    "## Motivation Video Assembler\n\n"
-                    "Paste a motivational YouTube URL. The pipeline transcribes the speech, "
-                    "runs a two-pass OpenAI analysis to find clip-worthy moments by category, "
-                    "cuts preview clips with ffmpeg, and surfaces them in a product UI.\n\n"
-                    f"**Repo:** {GITHUB_REPO}\n\n"
-                    "**Stack:** Python · FastAPI · OpenAI · yt-dlp · ffmpeg · HTML/CSS/JS"
-                ),
+                "summary": "YouTube speech → transcript → AI/manual clips → local database.",
+                "description": f"**Repo:** {GITHUB_REPO}",
             }
         },
     )
     return data["projectCreate"]["project"]
 
 
-def create_issue(
+def list_project_issues(project_id: str) -> dict[str, dict]:
+    data = linear_request(
+        """
+        query($filter: IssueFilter, $after: String) {
+          issues(filter: $filter, first: 100, after: $after) {
+            nodes { id identifier title url state { name } }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+        """,
+        {"filter": {"project": {"id": {"eq": project_id}}}, "after": None},
+    )
+    by_title: dict[str, dict] = {}
+    for issue in data["issues"]["nodes"]:
+        by_title[issue["title"]] = issue
+    return by_title
+
+
+def ensure_label(team_id: str, name: str, cache: dict[str, str]) -> str:
+    if name in cache:
+        return cache[name]
+    data = linear_request(
+        """
+        mutation($teamId: String!, $name: String!) {
+          issueLabelCreate(input: { teamId: $teamId, name: $name }) {
+            issueLabel { id name }
+          }
+        }
+        """,
+        {"teamId": team_id, "name": name},
+    )
+    label_id = data["issueLabelCreate"]["issueLabel"]["id"]
+    cache[name] = label_id
+    return label_id
+
+
+def upsert_issue(
     team_id: str,
     project_id: str,
     assignee_id: str,
     status_map: dict[str, str],
+    label_cache: dict[str, str],
+    existing: dict[str, dict],
     ticket: dict,
 ) -> dict:
     state_name = ticket.get("state", "Todo").lower()
     state_id = status_map.get(state_name) or status_map.get("todo") or status_map.get("backlog")
+    label_ids = [ensure_label(team_id, label, label_cache) for label in ticket.get("labels", [])]
 
-    label_ids: list[str] = []
-    for label in ticket.get("labels", []):
-        label_data = linear_request(
+    if ticket["title"] in existing:
+        issue_id = existing[ticket["title"]]["id"]
+        data = linear_request(
             """
-            mutation($teamId: String!, $name: String!) {
-              issueLabelCreate(input: { teamId: $teamId, name: $name }) {
-                issueLabel { id name }
+            mutation($id: String!, $input: IssueUpdateInput!) {
+              issueUpdate(id: $id, input: $input) {
+                issue { id identifier title url priority priorityLabel state { name } }
               }
             }
             """,
-            {"teamId": team_id, "name": label},
+            {
+                "id": issue_id,
+                "input": {
+                    "description": ticket["description"],
+                    "priority": ticket["priority"],
+                    "stateId": state_id,
+                    "labelIds": label_ids or None,
+                    "projectId": project_id,
+                    "assigneeId": assignee_id,
+                },
+            },
         )
-        label_ids.append(label_data["issueLabelCreate"]["issueLabel"]["id"])
+        return data["issueUpdate"]["issue"]
 
     data = linear_request(
         """
@@ -197,14 +266,14 @@ TICKETS = [
         "state": "Done",
         "priority": 2,
         "labels": ["backend", "pipeline"],
-        "description": "**Shipped.** Captions via youtube-transcript-api + Whisper fallback when captions missing.\n\n**Files:** `backend/services/transcript.py`",
+        "description": "**Shipped.** Captions via youtube-transcript-api + Whisper fallback.\n\n**Files:** `backend/services/transcript.py`",
     },
     {
         "title": "Two-pass OpenAI moment analysis (find + verify)",
         "state": "Done",
         "priority": 2,
         "labels": ["ai", "backend"],
-        "description": "**Shipped.** Optional auto-clip pass; 6 moment categories with verify pass.\n\n**Files:** `backend/services/analyzer.py`",
+        "description": "**Shipped.** GPT-5.5 two-pass analysis with JSON retry, truncation handling, `max_completion_tokens`, optional import flag.\n\n**Files:** `backend/services/analyzer.py`",
     },
     {
         "title": "Source video download + ffmpeg clip extraction",
@@ -218,21 +287,28 @@ TICKETS = [
         "state": "Done",
         "priority": 2,
         "labels": ["backend", "api"],
-        "description": "**Shipped.** Jobs, transcript storage, manual + AI clip endpoints.\n\n**Files:** `backend/app.py`, `backend/services/pipeline.py`",
+        "description": "**Shipped.** Jobs, optional AI, re-run analysis, manual clips, structured job logs.\n\n**Files:** `backend/app.py`, `backend/services/pipeline.py`, `backend/services/job_logs.py`",
     },
     {
         "title": "Motivation clip database — index, tags, local save",
         "state": "Done",
         "priority": 2,
         "labels": ["backend", "database"],
-        "description": "**Shipped.** Searchable index at `data/database/index.json`, saved MP4s in `data/database/clips/`, PATCH metadata, download endpoint.\n\n**Files:** `backend/services/database.py`",
+        "description": "**Shipped.** Searchable index, tags, PATCH metadata, download, local save folder.\n\n**Files:** `backend/services/database.py`",
     },
     {
         "title": "Studio — manual transcript-synced clipper",
         "state": "Done",
         "priority": 2,
         "labels": ["frontend", "backend", "ux"],
-        "description": "**Shipped.** Source video + transcript timeline, set in/out from playhead or shift+click range, save with title/category/tags.\n\n**Files:** `frontend/*`, `POST /api/jobs/{id}/clips`",
+        "description": "**Shipped.** Source video + transcript timeline, shift+click range, save with labels/tags.\n\n**Files:** `frontend/app.js`, `POST /api/jobs/{id}/clips`",
+    },
+    {
+        "title": "ClipTimeline — dual-bar video scrubber with in/out handles",
+        "state": "Done",
+        "priority": 2,
+        "labels": ["frontend", "ux", "video"],
+        "description": "**Shipped.** Main playhead bar + clip-range sub-bar, draggable handles, preview clip, works on any imported video in Studio.\n\n**Files:** `frontend/clip-timeline.js`, `frontend/styles.css`",
     },
     {
         "title": "Database UI — search, filter, download, edit labels",
@@ -242,18 +318,32 @@ TICKETS = [
         "description": "**Shipped.** Master-detail database view, search, tag filters, download MP4, edit title/tags.\n\n**Files:** `frontend/app.js`",
     },
     {
-        "title": "Goated design system + product UI overhaul",
+        "title": "Wispr Flow design system + product UI overhaul",
         "state": "Done",
         "priority": 3,
         "labels": ["frontend", "design"],
-        "description": "**Shipped.** Analyze / Studio / Database tabs, Goated tokens per DESIGN.md + UIUX_PROMPT.md.",
+        "description": "**Shipped.** Cream/lavender/teal Wispr Flow tokens per DESIGN.md + ruthless product UX per UIUX_PROMPT.md. Analyze / Studio / Database tabs.\n\n**Files:** `DESIGN.md`, `frontend/styles.css`, `frontend/index.html`",
+    },
+    {
+        "title": "Job logging — structured logs API + Studio/Analyze UI",
+        "state": "Done",
+        "priority": 3,
+        "labels": ["backend", "frontend", "observability"],
+        "description": "**Shipped.** Per-job JSONL logs at `data/logs/jobs/`, `GET /api/jobs/{id}/logs`, log panels in Analyze + Studio for AI/debug failures.\n\n**Files:** `backend/services/job_logs.py`",
+    },
+    {
+        "title": "Optional AI on import + re-run analysis on saved videos",
+        "state": "Done",
+        "priority": 2,
+        "labels": ["backend", "frontend", "ai"],
+        "description": "**Shipped.** Uncheck auto-analyze to import transcript only. Studio re-runs AI on any prepared video; replaces prior AI clips, keeps manual clips.\n\n**Endpoint:** `POST /api/jobs/{id}/analyze-ai`",
     },
     {
         "title": "Configure OpenAI + run end-to-end QA on real speeches",
-        "state": "Todo",
+        "state": "In Progress",
         "priority": 1,
         "labels": ["qa", "infra"],
-        "description": "**Assignee: James Yang.** Add OPENAI_API_KEY, test 3 real motivational videos (short/medium/long). Document failure modes.\n\n**Acceptance:** Full flow works including Whisper fallback on no-caption video.",
+        "description": "**Assignee: James Yang.** GPT-5.5 configured. Test 3 real motivational videos (short/medium/long). Document failure modes (JSON truncation, content_filter, Whisper fallback).\n\n**Acceptance:** Full flow on 3 videos including manual clip + AI re-run.",
     },
     {
         "title": "Montage assembly — stitch selected clips into one export",
@@ -263,11 +353,11 @@ TICKETS = [
         "description": "**Assignee: James Yang.** Select clips from database, order them, ffmpeg concat export.\n\n**Acceptance:** Single MP4 download from UI.",
     },
     {
-        "title": "Re-trim existing clips without re-clipping from scratch",
+        "title": "Re-trim existing database clips from source video",
         "state": "Todo",
         "priority": 3,
         "labels": ["frontend", "backend", "video"],
-        "description": "**Assignee: James Yang.** Edit boundaries on saved database clips and re-extract.\n\n**Note:** Studio handles new manual clips; this covers editing existing entries.",
+        "description": "**Assignee: James Yang.** Open saved clip in Studio at source timestamps, adjust boundaries, re-extract. ClipTimeline handles new clips; this covers editing existing DB entries in-place.\n\n**Depends on:** ClipTimeline (done)",
     },
     {
         "title": "Job history + batch import queue",
@@ -322,7 +412,66 @@ def build_notion_blocks() -> list[dict]:
     return blocks
 
 
-def create_notion_page(parent_id: str, linear_url: str) -> str:
+def append_notion_update(page_id: str, project_url: str) -> None:
+    children = [
+        {
+            "object": "block",
+            "type": "heading_2",
+            "heading_2": {
+                "rich_text": [{"type": "text", "text": {"content": "Sync update — July 5, 2026"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": "Wispr Flow UI overhaul (DESIGN.md)"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": "ClipTimeline dual-bar scrubber in Studio"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": "GPT-5.5 analysis + JSON retry/truncation fixes"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": "Job logs API + UI panels"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": "Optional AI on import; re-run AI on any saved video"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": [
+                    {"type": "text", "text": {"content": "Linear project: "}},
+                    {"type": "text", "text": {"content": project_url, "link": {"url": project_url}}},
+                    {"type": "text", "text": {"content": f" · GitHub: {GITHUB_REPO}"}},
+                ]
+            },
+        },
+    ]
+    notion_request("PATCH", f"blocks/{page_id}/children", {"children": children})
+
+
+def create_notion_page(parent_id: str, project_url: str) -> str:
     blocks = build_notion_blocks()
     body = {
         "parent": {"page_id": parent_id},
@@ -333,7 +482,7 @@ def create_notion_page(parent_id: str, linear_url: str) -> str:
         "children": blocks[:100],
     }
     page = notion_request("POST", "pages", body)
-    return page.get("url", "")
+    return page.get("url", page.get("id", ""))
 
 
 def main() -> None:
@@ -345,18 +494,35 @@ def main() -> None:
     project = find_project(PROJECT_NAME)
     if project:
         print(f"Found existing project: {project['url']}")
+        update_project(project["id"])
+        print("Updated project description.")
     else:
         project = create_project(team_id, viewer_id)
         print(f"Created project: {project['url']}")
 
-    created_issues = []
-    for ticket in TICKETS:
-        issue = create_issue(team_id, project["id"], viewer_id, status_map, ticket)
-        created_issues.append(issue)
-        print(f"  [{issue['identifier']}] P{issue['priority']} {issue['title']} — {issue['state']['name']}")
+    existing = list_project_issues(project["id"])
+    label_cache: dict[str, str] = {}
+    synced_issues = []
 
+    for ticket in TICKETS:
+        action = "Updated" if ticket["title"] in existing else "Created"
+        issue = upsert_issue(
+            team_id, project["id"], viewer_id, status_map, label_cache, existing, ticket
+        )
+        synced_issues.append(issue)
+        print(f"  {action} [{issue['identifier']}] P{issue['priority']} {issue['title']} — {issue['state']['name']}")
+
+    notion_page_id = os.environ.get("NOTION_PAGE_ID", "").strip()
     parent = os.environ.get("NOTION_PARENT_PAGE_ID", "").strip()
-    if parent:
+
+    if notion_page_id:
+        print("Appending update to existing Notion page…")
+        try:
+            append_notion_update(notion_page_id, project["url"])
+            print(f"Notion page updated: {notion_page_id}")
+        except urllib.error.HTTPError as exc:
+            print(f"Notion update failed: {exc.read().decode()}", file=sys.stderr)
+    elif parent:
         print("Creating Notion page…")
         try:
             notion_url = create_notion_page(parent, project["url"])
@@ -364,12 +530,14 @@ def main() -> None:
         except urllib.error.HTTPError as exc:
             print(f"Notion failed: {exc.read().decode()}", file=sys.stderr)
     else:
-        print("Skipping Notion (set NOTION_TOKEN + NOTION_PARENT_PAGE_ID to create page).")
-        print(f"Notion content ready at: {ROOT / 'docs' / 'notion-page-content.md'}")
+        print("Skipping Notion (set NOTION_PAGE_ID to append, or NOTION_TOKEN + NOTION_PARENT_PAGE_ID to create).")
+        print(f"Notion content source: {ROOT / 'docs' / 'notion-page-content.md'}")
 
     summary = {
         "project_url": project["url"],
-        "issues": [{"id": i["identifier"], "url": i["url"], "title": i["title"]} for i in created_issues],
+        "github": GITHUB_REPO,
+        "synced_at": "2026-07-05",
+        "issues": [{"id": i["identifier"], "url": i["url"], "title": i["title"], "state": i["state"]["name"]} for i in synced_issues],
     }
     out = ROOT / "docs" / "tracking-links.json"
     out.write_text(json.dumps(summary, indent=2))

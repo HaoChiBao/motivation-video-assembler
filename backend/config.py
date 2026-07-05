@@ -12,6 +12,7 @@ VIDEOS_DIR = DATA_DIR / "videos"
 DATABASE_DIR = DATA_DIR / "database"
 DATABASE_CLIPS_DIR = DATABASE_DIR / "clips"
 DATABASE_INDEX = DATABASE_DIR / "index.json"
+LOGS_DIR = DATA_DIR / "logs"
 
 
 class Settings(BaseSettings):
@@ -22,8 +23,10 @@ class Settings(BaseSettings):
     )
 
     openai_api_key: str = ""
-    openai_model: str = "gpt-4o"
+    openai_model: str = "gpt-5.5"
     openai_verify_model: str = ""
+    openai_reasoning_effort: str = "medium"
+    openai_max_completion_tokens: int = 16384
     max_moments_per_group: int = 3
 
     @property
@@ -33,5 +36,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-for directory in (DATA_DIR, JOBS_DIR, CLIPS_DIR, VIDEOS_DIR, DATABASE_DIR, DATABASE_CLIPS_DIR):
+for directory in (DATA_DIR, JOBS_DIR, CLIPS_DIR, VIDEOS_DIR, DATABASE_DIR, DATABASE_CLIPS_DIR, LOGS_DIR):
     directory.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assembler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-header__inner">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="brand-name">Assembler</span>
+          </div>
+
+          <nav class="app-nav" aria-label="Main">
+            <button class="nav-tab is-active" data-view="analyze" type="button">Analyze</button>
+            <button class="nav-tab" data-view="studio" type="button">Studio</button>
+            <button class="nav-tab" data-view="library" type="button">
+              Database
+              <span id="library-count" class="nav-count hidden">0</span>
+            </button>
+          </nav>
+
+          <div id="health-status" class="health-status" aria-live="polite">
+            <span class="health-dot"></span>
+            <span class="health-label">Checking…</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <section id="analyze-view" class="view view-analyze">
+          <div class="view-header">
+            <h1 class="view-title">Import a speech</h1>
+            <p class="view-subtitle">
+              Download the video, extract a timestamped transcript, then auto-find moments or clip manually in Studio.
+            </p>
+          </div>
+
+          <div class="card analyze-card">
+            <label class="field-label" for="youtube-url">YouTube URL</label>
+            <form id="analyze-form" class="analyze-form">
+              <input
+                id="youtube-url"
+                class="text-input"
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                autocomplete="off"
+                spellcheck="false"
+                required
+              />
+              <button id="analyze-btn" class="btn btn-primary" type="submit">Start</button>
+            </form>
+
+            <label class="checkbox-row">
+              <input id="auto-analyze" type="checkbox" checked />
+              <span>Auto-find clips with AI after transcript is ready</span>
+            </label>
+
+            <p id="inline-status" class="inline-status hidden" role="status"></p>
+          </div>
+
+          <div id="pipeline-card" class="card pipeline-card hidden">
+            <div class="pipeline-card__head">
+              <div>
+                <p class="eyebrow">Pipeline</p>
+                <h2 id="pipeline-title" class="card-title">Waiting to start</h2>
+              </div>
+              <span id="pipeline-percent" class="pipeline-percent">0%</span>
+            </div>
+            <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+            <ol class="pipeline-steps" id="pipeline-steps">
+              <li class="pipeline-step" data-stage="queued"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Queued</span><span class="step-detail">Job created</span></span></li>
+              <li class="pipeline-step" data-stage="downloading_video"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Source video</span><span class="step-detail">Download with audio</span></span></li>
+              <li class="pipeline-step" data-stage="fetching_transcript"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Transcript</span><span class="step-detail">Captions or Whisper</span></span></li>
+              <li class="pipeline-step" data-stage="prepared"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Ready</span><span class="step-detail">Open in Studio to clip</span></span></li>
+              <li class="pipeline-step" data-stage="analyzing"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">AI analysis</span><span class="step-detail">Find best moments</span></span></li>
+              <li class="pipeline-step" data-stage="extracting_clips"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Clips</span><span class="step-detail">Cut with ffmpeg</span></span></li>
+              <li class="pipeline-step" data-stage="done"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Complete</span><span class="step-detail">Saved to database</span></span></li>
+            </ol>
+            <div id="pipeline-actions" class="pipeline-actions hidden">
+              <button id="open-studio-btn" class="btn btn-primary" type="button">Open in Studio</button>
+              <button id="open-library-btn" class="btn btn-secondary" type="button">View database</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="studio-view" class="view view-studio hidden">
+          <div class="view-header studio-header">
+            <div>
+              <h1 class="view-title">Clip studio</h1>
+              <p class="view-subtitle">Scrub the transcript, set in/out points, label your clip, and save it locally.</p>
+            </div>
+            <div class="studio-job-picker">
+              <label class="field-label" for="studio-job-select">Source video</label>
+              <select id="studio-job-select" class="text-input"></select>
+            </div>
+          </div>
+
+          <div id="studio-empty" class="card empty-state studio-empty">
+            <p class="empty-title">No prepared videos yet</p>
+            <p class="empty-copy">Import a YouTube URL on Analyze first. Once the transcript is ready, clip here.</p>
+            <button class="btn btn-secondary" data-view="analyze" type="button">Import video</button>
+          </div>
+
+          <div id="studio-workspace" class="studio-workspace hidden">
+            <div class="studio-main card">
+              <div class="studio-video-wrap">
+                <video id="studio-video" controls playsinline preload="metadata"></video>
+              </div>
+
+              <div class="range-bar">
+                <div class="range-controls">
+                  <button id="set-start-btn" class="btn btn-ghost" type="button">Set start</button>
+                  <button id="set-end-btn" class="btn btn-ghost" type="button">Set end</button>
+                  <button id="preview-range-btn" class="btn btn-ghost" type="button">Preview range</button>
+                </div>
+                <div class="range-inputs">
+                  <label>Start <input id="clip-start" class="time-input" type="text" value="0:00" /></label>
+                  <label>End <input id="clip-end" class="time-input" type="text" value="0:15" /></label>
+                </div>
+              </div>
+
+              <div class="transcript-panel">
+                <div class="transcript-panel__head">
+                  <p class="eyebrow">Transcript</p>
+                  <span id="transcript-source" class="badge badge-neutral">captions</span>
+                </div>
+                <div id="transcript-list" class="transcript-list"></div>
+              </div>
+            </div>
+
+            <aside class="studio-sidebar card">
+              <p class="eyebrow">Save clip</p>
+              <h2 class="card-title">New clip</h2>
+
+              <label class="field-label" for="clip-title">Title</label>
+              <input id="clip-title" class="text-input" type="text" placeholder="Morning discipline hook" />
+
+              <label class="field-label" for="clip-group">Category</label>
+              <select id="clip-group" class="text-input">
+                <option value="hook">Hook</option>
+                <option value="emotional_peak">Emotional Peak</option>
+                <option value="wisdom">Wisdom</option>
+                <option value="story_climax">Story Climax</option>
+                <option value="call_to_action">Call to Action</option>
+                <option value="quotable" selected>Quotable</option>
+              </select>
+
+              <label class="field-label" for="clip-tags">Tags</label>
+              <input id="clip-tags" class="text-input" type="text" placeholder="discipline, morning, gym" />
+
+              <label class="field-label" for="clip-quote">Quote preview</label>
+              <textarea id="clip-quote" class="text-area" rows="4" placeholder="Auto-filled from transcript selection"></textarea>
+
+              <label class="checkbox-row">
+                <input id="save-local" type="checkbox" checked />
+                <span>Save to local database folder on clip</span>
+              </label>
+
+              <button id="save-clip-btn" class="btn btn-primary" type="button">Save clip</button>
+              <button id="run-ai-btn" class="btn btn-secondary" type="button">Run AI auto-clip</button>
+              <p id="studio-status" class="inline-status hidden"></p>
+            </aside>
+          </div>
+        </section>
+
+        <section id="library-view" class="view view-library hidden">
+          <div class="library-shell">
+            <aside class="library-sidebar card">
+              <div class="library-toolbar">
+                <div>
+                  <p class="eyebrow">Database</p>
+                  <h2 class="card-title">Motivation clips</h2>
+                </div>
+                <button id="refresh-library-btn" class="btn btn-ghost" type="button">Refresh</button>
+              </div>
+
+              <input id="library-search" class="text-input" type="search" placeholder="Search title, quote, tags…" />
+
+              <div id="group-filters" class="filter-pills"></div>
+              <div id="tag-filters" class="filter-pills"></div>
+
+              <div id="clip-list" class="clip-list" role="list"></div>
+
+              <div id="library-empty" class="empty-state">
+                <p class="empty-title">No clips yet</p>
+                <p class="empty-copy">Import a video and save clips from Studio.</p>
+                <button class="btn btn-secondary empty-action" data-view="analyze" type="button">Import video</button>
+              </div>
+            </aside>
+
+            <div id="clip-detail" class="clip-detail card hidden">
+              <div class="clip-detail__media">
+                <video id="detail-video" controls playsinline preload="metadata"></video>
+              </div>
+              <div class="clip-detail__body">
+                <div class="clip-detail__meta">
+                  <span id="detail-group" class="badge badge-accent"></span>
+                  <span id="detail-source-type" class="badge badge-neutral"></span>
+                  <span id="detail-time" class="badge badge-neutral"></span>
+                  <span id="detail-saved" class="badge badge-neutral hidden">Saved locally</span>
+                </div>
+                <h3 id="detail-title" class="detail-title"></h3>
+                <blockquote id="detail-quote" class="detail-quote"></blockquote>
+                <p id="detail-rationale" class="detail-rationale"></p>
+                <p id="detail-source" class="detail-source"></p>
+                <div id="detail-tags" class="tag-row"></div>
+
+                <div class="detail-actions">
+                  <button id="download-clip-btn" class="btn btn-primary" type="button">Download MP4</button>
+                  <button id="save-local-btn" class="btn btn-secondary" type="button">Save to database folder</button>
+                </div>
+
+                <div class="edit-panel">
+                  <p class="eyebrow">Edit labels</p>
+                  <label class="field-label" for="edit-title">Title</label>
+                  <input id="edit-title" class="text-input" type="text" />
+                  <label class="field-label" for="edit-tags">Tags</label>
+                  <input id="edit-tags" class="text-input" type="text" />
+                  <button id="save-meta-btn" class="btn btn-ghost" type="button">Update metadata</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="clip-detail-empty" class="clip-detail clip-detail--empty card">
+              <p class="empty-title">Select a clip</p>
+              <p class="empty-copy">Browse your indexed motivation clip database.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

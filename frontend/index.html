@@ -276,7 +276,8 @@
               <div class="library-toolbar">
                 <div>
                   <p class="eyebrow">Index</p>
-                  <h2 class="card-title">All clips</h2>
+                  <h2 class="card-title">Library</h2>
+                  <p id="library-index-count" class="library-index-count"></p>
                 </div>
                 <button id="refresh-library-btn" class="btn btn-ghost" type="button">Refresh</button>
               </div>
@@ -284,12 +285,19 @@
               <input id="library-search" class="text-input" type="search" placeholder="Search title, quote, tags…" />
 
               <div class="library-section">
-                <p class="eyebrow">Full videos</p>
+                <div class="library-section__head">
+                  <p class="eyebrow">Full videos</p>
+                  <span id="source-count" class="library-section__count"></span>
+                </div>
                 <div id="source-list" class="source-list" role="list"></div>
+                <p id="source-list-empty" class="library-section__empty hidden">No saved videos yet. Import a speech to add one.</p>
               </div>
 
               <div class="library-section">
-                <p class="eyebrow">Clips</p>
+                <div class="library-section__head">
+                  <p class="eyebrow">Clips</p>
+                  <span id="clip-count" class="library-section__count"></span>
+                </div>
               </div>
 
               <div id="group-filters" class="filter-pills"></div>
@@ -325,6 +333,7 @@
                   <button id="download-clip-btn" class="btn btn-primary" type="button">Download MP4</button>
                   <button id="save-local-btn" class="btn btn-secondary" type="button">Save to folder</button>
                   <button id="open-studio-from-detail-btn" class="btn btn-ghost hidden" type="button">Open in Studio</button>
+                  <button id="delete-detail-btn" class="btn btn-danger" type="button">Delete</button>
                 </div>
 
                 <div class="edit-panel">

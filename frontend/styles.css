@@ -350,6 +350,20 @@ select.text-input:focus {
   font-weight: 500;
 }
 
+.btn-danger {
+  height: 36px;
+  padding: 0 12px;
+  background: transparent;
+  color: #8b1a1a;
+  border: 1px solid rgba(139, 26, 26, 0.35);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(139, 26, 26, 0.08);
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -1066,7 +1080,9 @@ select.text-input:focus {
 .source-list {
   display: grid;
   gap: 8px;
-  margin-bottom: var(--spacing-8);
+  margin-bottom: var(--spacing-16);
+  max-height: 220px;
+  overflow-y: auto;
 }
 
 .source-row {
@@ -1107,6 +1123,27 @@ select.text-input:focus {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
+}
+
+.library-index-count,
+.library-section__count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-graphite-veil);
+}
+
+.library-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.library-section__empty {
+  margin: 0 0 var(--spacing-16);
+  font-size: 13px;
+  color: var(--color-graphite-veil);
 }
 
 #library-search {

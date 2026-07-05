@@ -132,8 +132,8 @@ def update_project(project_id: str) -> None:
                     "and browse/search/download from a local clip database.\n\n"
                     f"**Repo:** {GITHUB_REPO}\n\n"
                     "**Stack:** Python · FastAPI · OpenAI GPT-5.5 · yt-dlp · ffmpeg · Wispr Flow UI\n\n"
-                    "**Latest (Jul 2026):** Wispr Flow design, ClipTimeline scrubber, job logs, "
-                    "optional AI on import, re-run analysis on any saved video."
+                    "**Latest (Jul 2026):** AI clip review (Save/Reject), full video library with delete, "
+                    "stacked ClipTimeline overlay, GPT-5.5 logging fix. E2E verified on Stan Lee keynote."
                 ),
             },
         },
@@ -308,14 +308,42 @@ TICKETS = [
         "state": "Done",
         "priority": 2,
         "labels": ["frontend", "ux", "video"],
-        "description": "**Shipped.** Main playhead bar + clip-range sub-bar, draggable handles, preview clip, works on any imported video in Studio.\n\n**Files:** `frontend/clip-timeline.js`, `frontend/styles.css`",
+        "description": "**Shipped.** Stacked timeline overlay on video — playhead bar + transparent clip-range band, hover expand, preview clip.\n\n**Files:** `frontend/clip-timeline.js`, `frontend/styles.css`",
+    },
+    {
+        "title": "Auto-save full source video to database on import",
+        "state": "Done",
+        "priority": 2,
+        "labels": ["backend", "database", "video"],
+        "description": "**Shipped.** Full MP4 copied to `data/database/videos/` on import. Listed under Database → Full videos.\n\n**Files:** `backend/services/pipeline.py`, `backend/services/database.py`",
+    },
+    {
+        "title": "AI clip review — preview grid with Save / Reject",
+        "state": "Done",
+        "priority": 2,
+        "labels": ["frontend", "backend", "ai", "ux"],
+        "description": "**Shipped.** After AI analysis, preview each suggestion in Analyze + Studio. Save accepts to library; Reject deletes. Pending clips hidden until accepted.\n\n**Endpoints:** `GET /api/jobs/{id}/ai-review`, `POST /api/database/clips/{id}/accept`, `DELETE /api/database/clips/{id}`",
+    },
+    {
+        "title": "Library — view and delete full videos + clips",
+        "state": "Done",
+        "priority": 2,
+        "labels": ["frontend", "backend", "database", "ux"],
+        "description": "**Shipped.** Database sidebar lists all full videos + clips with counts. Delete video removes source MP4 and all job clips. Delete clip from detail view.\n\n**Endpoint:** `DELETE /api/database/sources/{id}`",
+    },
+    {
+        "title": "Fix GPT-5.5 CompletionTokensDetails JSON logging crash",
+        "state": "Done",
+        "priority": 2,
+        "labels": ["backend", "ai", "observability"],
+        "description": "**Shipped.** `_usage_dict()` serializes token details via `model_dump()`. `log_job()` sanitizes all details payloads.\n\n**Files:** `backend/services/analyzer.py`, `backend/services/job_logs.py`",
     },
     {
         "title": "Database UI — search, filter, download, edit labels",
         "state": "Done",
         "priority": 2,
         "labels": ["frontend", "ux"],
-        "description": "**Shipped.** Master-detail database view, search, tag filters, download MP4, edit title/tags.\n\n**Files:** `frontend/app.js`",
+        "description": "**Shipped.** Master-detail database view, full videos section, search, tag filters, download MP4, edit title/tags, delete videos/clips.\n\n**Files:** `frontend/app.js`",
     },
     {
         "title": "Wispr Flow design system + product UI overhaul",
@@ -343,7 +371,7 @@ TICKETS = [
         "state": "In Progress",
         "priority": 1,
         "labels": ["qa", "infra"],
-        "description": "**Assignee: James Yang.** GPT-5.5 configured. Test 3 real motivational videos (short/medium/long). Document failure modes (JSON truncation, content_filter, Whisper fallback).\n\n**Acceptance:** Full flow on 3 videos including manual clip + AI re-run.",
+        "description": "**Assignee: James Yang.** GPT-5.5 configured.\n\n**Verified Jul 5, 2026:** [Stan Lee 2017 Graduation Keynote](https://www.youtube.com/watch?v=eMo9Guj5gCc) — full pipeline (download → transcript → AI → 12 clips → review Save/Reject).\n\n**Remaining:** 2 more speeches (short/medium). Document failure modes.",
     },
     {
         "title": "Montage assembly — stitch selected clips into one export",
@@ -418,42 +446,49 @@ def append_notion_update(page_id: str, project_url: str) -> None:
             "object": "block",
             "type": "heading_2",
             "heading_2": {
-                "rich_text": [{"type": "text", "text": {"content": "Sync update — July 5, 2026"}}]
+                "rich_text": [{"type": "text", "text": {"content": "Sync update — July 5, 2026 (Phase 2)"}}]
             },
         },
         {
             "object": "block",
             "type": "bulleted_list_item",
             "bulleted_list_item": {
-                "rich_text": [{"type": "text", "text": {"content": "Wispr Flow UI overhaul (DESIGN.md)"}}]
+                "rich_text": [{"type": "text", "text": {"content": "AI clip review — preview grid with Save / Reject (pending clips hidden until accepted)"}}]
             },
         },
         {
             "object": "block",
             "type": "bulleted_list_item",
             "bulleted_list_item": {
-                "rich_text": [{"type": "text", "text": {"content": "ClipTimeline dual-bar scrubber in Studio"}}]
+                "rich_text": [{"type": "text", "text": {"content": "Full video library — view all source videos, delete video + cascaded clips"}}]
             },
         },
         {
             "object": "block",
             "type": "bulleted_list_item",
             "bulleted_list_item": {
-                "rich_text": [{"type": "text", "text": {"content": "GPT-5.5 analysis + JSON retry/truncation fixes"}}]
+                "rich_text": [{"type": "text", "text": {"content": "ClipTimeline stacked overlay on video (transparent clip range, hover expand)"}}]
             },
         },
         {
             "object": "block",
             "type": "bulleted_list_item",
             "bulleted_list_item": {
-                "rich_text": [{"type": "text", "text": {"content": "Job logs API + UI panels"}}]
+                "rich_text": [{"type": "text", "text": {"content": "GPT-5.5 CompletionTokensDetails logging fix"}}]
             },
         },
         {
             "object": "block",
             "type": "bulleted_list_item",
             "bulleted_list_item": {
-                "rich_text": [{"type": "text", "text": {"content": "Optional AI on import; re-run AI on any saved video"}}]
+                "rich_text": [{"type": "text", "text": {"content": "E2E verified: Stan Lee keynote — 12 AI clips, full pipeline OK"}}]
+            },
+        },
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": "Wispr Flow UI, GPT-5.5 analysis, job logs, optional AI on import"}}]
             },
         },
         {
@@ -536,7 +571,7 @@ def main() -> None:
     summary = {
         "project_url": project["url"],
         "github": GITHUB_REPO,
-        "synced_at": "2026-07-05",
+        "synced_at": "2026-07-05T06:05:00Z",
         "issues": [{"id": i["identifier"], "url": i["url"], "title": i["title"], "state": i["state"]["name"]} for i in synced_issues],
     }
     out = ROOT / "docs" / "tracking-links.json"

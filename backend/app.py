@@ -16,6 +16,7 @@ from backend.services.database import (
     accept_clip,
     all_tags,
     delete_clip,
+    delete_source,
     get_clip,
     get_saved_clip_path,
     get_saved_source_path,
@@ -303,6 +304,16 @@ def download_saved_source(source_id: str) -> FileResponse:
 
     filename = f"{_safe_filename(source.get('video_title') or source_id)}.mp4"
     return FileResponse(saved, media_type="video/mp4", filename=filename)
+
+
+@app.delete("/api/database/sources/{source_id}")
+def remove_source(source_id: str) -> dict:
+    source = get_source(source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source video not found.")
+    if not delete_source(source_id):
+        raise HTTPException(status_code=404, detail="Source video not found.")
+    return {"deleted": source_id}
 
 
 @app.delete("/api/database/clips/{clip_id}")

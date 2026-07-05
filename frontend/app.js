@@ -86,7 +86,12 @@ const detailTags = document.getElementById("detail-tags");
 const downloadClipBtn = document.getElementById("download-clip-btn");
 const saveLocalBtn = document.getElementById("save-local-btn");
 const openStudioFromDetailBtn = document.getElementById("open-studio-from-detail-btn");
+const deleteDetailBtn = document.getElementById("delete-detail-btn");
 const sourceList = document.getElementById("source-list");
+const sourceListEmpty = document.getElementById("source-list-empty");
+const sourceCount = document.getElementById("source-count");
+const clipCount = document.getElementById("clip-count");
+const libraryIndexCount = document.getElementById("library-index-count");
 const editTitle = document.getElementById("edit-title");
 const editTags = document.getElementById("edit-tags");
 const saveMetaBtn = document.getElementById("save-meta-btn");
@@ -152,6 +157,7 @@ runAiBtn.addEventListener("click", runAiOnJob);
 downloadClipBtn.addEventListener("click", downloadSelectedClip);
 saveLocalBtn.addEventListener("click", saveSelectedToDatabase);
 openStudioFromDetailBtn.addEventListener("click", openSelectedSourceInStudio);
+deleteDetailBtn.addEventListener("click", deleteSelectedItem);
 saveMetaBtn.addEventListener("click", updateSelectedMetadata);
 refreshPipelineLogsBtn.addEventListener("click", () => {
   if (state.currentJobId) loadJobLogs(state.currentJobId, pipelineLogOutput, pipelineLogs);
@@ -707,6 +713,10 @@ async function loadLibrary() {
 
   libraryCount.textContent = String(state.library.length + state.sources.length);
   libraryCount.classList.toggle("hidden", state.library.length === 0 && state.sources.length === 0);
+  libraryIndexCount.textContent = `${state.sources.length} video${state.sources.length === 1 ? "" : "s"} · ${state.library.length} clip${state.library.length === 1 ? "" : "s"}`;
+  sourceCount.textContent = String(state.sources.length);
+  clipCount.textContent = String(state.library.length);
+  sourceListEmpty?.classList.toggle("hidden", state.sources.length > 0);
 
   renderSources();
   renderFilters();
@@ -761,6 +771,8 @@ function selectSource(source) {
   downloadClipBtn.textContent = "Download full MP4";
   saveLocalBtn.classList.add("hidden");
   openStudioFromDetailBtn.classList.remove("hidden");
+  deleteDetailBtn.textContent = "Delete video";
+  deleteDetailBtn.classList.remove("hidden");
 
   renderSources();
   renderLibrary();
@@ -888,6 +900,8 @@ function selectClip(clip, scrollIntoView) {
   downloadClipBtn.textContent = "Download MP4";
   saveLocalBtn.classList.remove("hidden");
   openStudioFromDetailBtn.classList.add("hidden");
+  deleteDetailBtn.textContent = "Delete clip";
+  deleteDetailBtn.classList.remove("hidden");
 
   detailTags.innerHTML = "";
   (clip.tags || []).forEach((tag) => {
@@ -949,6 +963,48 @@ async function updateSelectedMetadata() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "Update failed.");
     await loadLibrary();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteSelectedItem() {
+  if (state.libraryDetailMode === "source") {
+    const source = state.sources.find((item) => item.id === state.selectedSourceId);
+    if (!source) return;
+
+    const relatedClips = state.library.filter((clip) => clip.job_id === source.job_id).length;
+    const clipNote = relatedClips
+      ? ` This will also remove ${relatedClips} clip${relatedClips === 1 ? "" : "s"} from this video.`
+      : "";
+    const label = source.video_title || source.youtube_url || "this video";
+    if (!confirm(`Delete "${label}" from your library?${clipNote} This cannot be undone.`)) return;
+
+    try {
+      const response = await fetch(`/api/database/sources/${source.id}`, { method: "DELETE" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || "Delete failed.");
+      state.selectedSourceId = null;
+      state.selectedClipId = null;
+      await loadLibrary();
+      await loadStudioJobs();
+    } catch (error) {
+      alert(error.message);
+    }
+    return;
+  }
+
+  const clip = state.library.find((item) => item.id === state.selectedClipId);
+  if (!clip) return;
+  if (!confirm(`Delete "${clip.title}" from your library? This cannot be undone.`)) return;
+
+  try {
+    const response = await fetch(`/api/database/clips/${clip.id}`, { method: "DELETE" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "Delete failed.");
+    state.selectedClipId = null;
+    await loadLibrary();
+    await loadStudioJobs();
   } catch (error) {
     alert(error.message);
   }

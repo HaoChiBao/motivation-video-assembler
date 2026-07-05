@@ -339,3 +339,25 @@ def get_saved_source_path(source_id: str) -> Path | None:
         return None
     path = DATABASE_VIDEOS_DIR / f"{source_id}.mp4"
     return path if path.exists() else None
+
+
+def delete_source(source_id: str) -> bool:
+    """Remove a saved source video and all indexed clips for its job."""
+    with _lock:
+        index = _load_index()
+        sources = index.get("sources", [])
+        target = next((source for source in sources if source["id"] == source_id), None)
+        if not target:
+            return False
+        index["sources"] = [source for source in sources if source["id"] != source_id]
+        _save_index(index)
+
+    saved = DATABASE_VIDEOS_DIR / f"{source_id}.mp4"
+    if saved.exists():
+        saved.unlink()
+
+    job_id = target.get("job_id")
+    if job_id:
+        delete_clips_for_job(job_id)
+
+    return True

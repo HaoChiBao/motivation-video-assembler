@@ -3,7 +3,7 @@
 </callout>
 
 <callout icon="📌" color="blue_bg">
-**Status — July 5, 2026:** Phase 1.5 shipped. **Wispr Flow** UI, **ClipTimeline** dual-bar scrubber, **GPT-5.5** analysis with retry/logging, optional AI on import, re-run AI on any saved video. Next: montage export + full E2E QA on 3 speeches.
+**Status — July 5, 2026:** Phase 2 shipped. **AI clip review** (Save/Reject grid), **full video library** (view/delete), stacked **ClipTimeline** overlay, GPT-5.5 logging fix. E2E verified on Stan Lee keynote (12 AI clips). Next: montage export + 2 more QA speeches.
 </callout>
 
 <table_of_contents/>
@@ -70,6 +70,16 @@ Motivation Video Assembler is a local-first pipeline for turning long motivation
 - GPT-5.5 default model with `max_completion_tokens` + retry on truncated JSON
 - Per-job JSONL logs, `GET /api/jobs/{id}/logs`
 - AI failures keep video in `prepared` state (manual clip still works)
+
+### Phase 2 — Review workflow + library management (shipped)
+- Auto-save full source MP4 to `data/database/videos/` on import
+- **AI clip review** — preview grid with per-clip Save / Reject before indexing
+- Pending AI clips hidden from Database until accepted (`review_status`)
+- **Full videos** section in Database — preview, download, delete (cascades clips)
+- Delete individual clips from Database detail view
+- ClipTimeline stacked on video (transparent clip range overlay, hover expand)
+- GPT-5.5 `CompletionTokensDetails` JSON logging fix
+- E2E verified: [Stan Lee 2017 Graduation Keynote](https://www.youtube.com/watch?v=eMo9Guj5gCc) — download → transcript → AI → 12 clips
 
 ### Phase 3 — Assembly
 - Select clips from library → stitch into one export MP4
@@ -260,6 +270,26 @@ flowchart LR
 		<td>Re-run AI analysis — `{ "replace_existing": true }`</td>
 	</tr>
 	<tr>
+		<td>GET</td>
+		<td>/api/jobs/{id}/ai-review</td>
+		<td>Pending AI clip suggestions for review</td>
+	</tr>
+	<tr>
+		<td>POST</td>
+		<td>/api/database/clips/{id}/accept</td>
+		<td>Accept AI clip — `{ "save_local": true }`</td>
+	</tr>
+	<tr>
+		<td>DELETE</td>
+		<td>/api/database/clips/{id}</td>
+		<td>Reject/delete clip</td>
+	</tr>
+	<tr>
+		<td>DELETE</td>
+		<td>/api/database/sources/{id}</td>
+		<td>Delete full video + all job clips</td>
+	</tr>
+	<tr>
 		<td>POST</td>
 		<td>/api/jobs/{id}/clips</td>
 		<td>Manual clip from Studio</td>
@@ -287,26 +317,30 @@ flowchart LR
 
 <details>
 <summary>Analyze tab</summary>
-	- URL input + Analyze button
-	- Inline status (info / success / error)
-	- Pipeline card (hidden until job starts): stepper + progress %
-	- "Open library" CTA on completion
+	- URL input + Analyze button (optional AI auto-clip checkbox)
+	- Pipeline card: stepper + progress % + job logs
+	- **AI review grid** on completion — preview each suggestion, Save or Reject
+	- "Review AI clips" opens Studio review section
 </details>
 
 <details>
 <summary>Studio tab</summary>
 	- Source video picker (any imported/prepared video)
-	- **ClipTimeline:** main playhead bar + clip-range sub-bar with draggable in/out handles
+	- **ClipTimeline** overlay on video — playhead bar + transparent clip-range band with in/out handles
+	- Controls below video: play, time readouts, in/out inputs, preview clip
 	- Transcript panel with shift+click range; syncs to timeline
 	- Save clip form (title, category, tags, local save)
+	- **AI review grid** — same Save/Reject cards after AI analysis
 	- Re-run AI analysis; job log panel
 </details>
 
 <details>
 <summary>Database tab</summary>
-	- Left sidebar: search, category/tag filters, clip list
-	- Right detail pane: video player + quote + metadata + download
-	- Edit title/tags; save to local folder
+	- Left sidebar: **Full videos** list + **Clips** list with counts
+	- Search, category/tag filters
+	- Right detail pane: video player + metadata + download
+	- **Delete video** (removes source + all clips) or **Delete clip**
+	- Edit title/tags on saved clips; save to local folder
 </details>
 
 **UX principles (UIUX_PROMPT.md + DESIGN.md)**

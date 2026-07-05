@@ -378,15 +378,26 @@ def _usage_dict(response: Any) -> dict[str, Any]:
     usage = getattr(response, "usage", None)
     if not usage:
         return {}
-    details = {
+
+    details: dict[str, Any] = {
         "prompt_tokens": getattr(usage, "prompt_tokens", None),
         "completion_tokens": getattr(usage, "completion_tokens", None),
         "total_tokens": getattr(usage, "total_tokens", None),
     }
-    for key in ("completion_tokens_details", "reasoning_tokens"):
+
+    for key in ("completion_tokens_details", "prompt_tokens_details"):
         value = getattr(usage, key, None)
-        if value is not None:
+        if value is None:
+            continue
+        if hasattr(value, "model_dump"):
+            details[key] = value.model_dump()
+        elif isinstance(value, dict):
             details[key] = value
+        else:
+            reasoning = getattr(value, "reasoning_tokens", None)
+            if reasoning is not None:
+                details["reasoning_tokens"] = reasoning
+
     return details
 
 

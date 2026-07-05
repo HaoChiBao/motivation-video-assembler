@@ -43,6 +43,24 @@ def _job_log_path(job_id: str) -> Path:
     return JOB_LOGS_DIR / f"{job_id}.jsonl"
 
 
+def _json_safe(value: Any) -> Any:
+    """Convert arbitrary objects into JSON-serializable values."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    if hasattr(value, "model_dump"):
+        return _json_safe(value.model_dump())
+    if hasattr(value, "dict"):
+        try:
+            return _json_safe(value.dict())
+        except TypeError:
+            pass
+    return str(value)
+
+
 def log_job(
     job_id: str,
     level: str,
@@ -56,7 +74,7 @@ def log_job(
         "level": level,
         "event": event,
         "message": message,
-        "details": details or {},
+        "details": _json_safe(details or {}),
     }
 
     path = _job_log_path(job_id)

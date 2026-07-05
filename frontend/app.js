@@ -36,6 +36,9 @@ const state = {
   studioJobId: null,
   pollTimer: null,
   selectedClipId: null,
+  selectedSourceId: null,
+  libraryDetailMode: "clip",
+  sources: [],
   library: [],
   allTags: [],
   studioSegments: [],
@@ -82,6 +85,8 @@ const detailSource = document.getElementById("detail-source");
 const detailTags = document.getElementById("detail-tags");
 const downloadClipBtn = document.getElementById("download-clip-btn");
 const saveLocalBtn = document.getElementById("save-local-btn");
+const openStudioFromDetailBtn = document.getElementById("open-studio-from-detail-btn");
+const sourceList = document.getElementById("source-list");
 const editTitle = document.getElementById("edit-title");
 const editTags = document.getElementById("edit-tags");
 const saveMetaBtn = document.getElementById("save-meta-btn");
@@ -107,6 +112,12 @@ const refreshPipelineLogsBtn = document.getElementById("refresh-pipeline-logs-bt
 const studioLogs = document.getElementById("studio-logs");
 const studioLogOutput = document.getElementById("studio-log-output");
 const refreshStudioLogsBtn = document.getElementById("refresh-studio-logs-btn");
+const pipelineAiReview = document.getElementById("pipeline-ai-review");
+const pipelineAiGrid = document.getElementById("pipeline-ai-grid");
+const pipelineAiReviewEmpty = document.getElementById("pipeline-ai-review-empty");
+const studioAiReview = document.getElementById("studio-ai-review");
+const studioAiGrid = document.getElementById("studio-ai-grid");
+const studioAiReviewEmpty = document.getElementById("studio-ai-review-empty");
 
 document.querySelectorAll("[data-view]").forEach((button) => {
   button.addEventListener("click", () => setView(button.dataset.view));
@@ -123,6 +134,7 @@ openStudioBtn.addEventListener("click", () => {
     state.studioJobId = state.currentJobId;
   }
   setView("studio");
+  studioAiReview?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 refreshLibraryBtn.addEventListener("click", () => loadLibrary());
 librarySearch.addEventListener("input", debounce(() => {
@@ -132,13 +144,14 @@ librarySearch.addEventListener("input", debounce(() => {
 
 studioJobSelect.addEventListener("change", () => loadStudioJob(studioJobSelect.value));
 studioVideo.addEventListener("click", () => {
-  if (studioVideo.paused) studioVideo.play();
+  if (studioVideo.paused) safePlay(studioVideo);
   else studioVideo.pause();
 });
 saveClipBtn.addEventListener("click", saveManualClip);
 runAiBtn.addEventListener("click", runAiOnJob);
 downloadClipBtn.addEventListener("click", downloadSelectedClip);
 saveLocalBtn.addEventListener("click", saveSelectedToDatabase);
+openStudioFromDetailBtn.addEventListener("click", openSelectedSourceInStudio);
 saveMetaBtn.addEventListener("click", updateSelectedMetadata);
 refreshPipelineLogsBtn.addEventListener("click", () => {
   if (state.currentJobId) loadJobLogs(state.currentJobId, pipelineLogOutput, pipelineLogs);
@@ -154,6 +167,8 @@ studioVideo.addEventListener("timeupdate", () => {
 init();
 
 async function init() {
+  patchVideoElement(studioVideo);
+  patchVideoElement(detailVideo);
   initStudioTimeline();
   await refreshHealth();
   await loadLibrary();
@@ -253,11 +268,16 @@ function pollJob(jobId, context = "analyze") {
 
       if (job.status === "completed") {
         clearInterval(state.pollTimer);
-        const count = (job.clips || []).length;
+        const count = (job.clips || []).filter((clip) => clip.source_type === "ai").length;
         if (context === "analyze") {
-          finishAnalyze(job, `${count} clips indexed in your database.`);
+          finishAnalyze(job, count
+            ? `AI found ${count} clip suggestions — review and save the ones you want below.`
+            : "Import complete.");
+          await loadAiReview(jobId);
         } else {
-          finishStudioPoll(job, `AI analysis complete — ${count} clips indexed.`, "success");
+          finishStudioPoll(job, count
+            ? `AI found ${count} clip suggestions — review them below.`
+            : "AI analysis complete.", "success");
           await loadStudioJob(jobId);
         }
         await loadLibrary();
@@ -394,6 +414,8 @@ async function loadStudioJob(jobId) {
   } else {
     studioStatus.classList.add("hidden");
   }
+
+  await loadAiReview(jobId);
 }
 
 function updateRunAiButton(job) {
@@ -549,6 +571,102 @@ async function runAiOnJob() {
   }
 }
 
+async function loadAiReview(jobId) {
+  if (!jobId) return;
+
+  try {
+    const response = await fetch(`/api/jobs/${jobId}/ai-review`);
+    const data = await response.json();
+    const clips = data.clips || [];
+    renderAiClipGrid(clips, pipelineAiGrid, pipelineAiReview, pipelineAiReviewEmpty);
+    renderAiClipGrid(clips, studioAiGrid, studioAiReview, studioAiReviewEmpty, jobId);
+    openStudioBtn.textContent = clips.length ? "Review AI clips" : "Open in Studio";
+  } catch (_error) {
+    pipelineAiReview?.classList.add("hidden");
+    studioAiReview?.classList.add("hidden");
+  }
+}
+
+function renderAiClipGrid(clips, gridEl, containerEl, emptyEl, jobId = state.currentJobId) {
+  if (!gridEl || !containerEl) return;
+
+  gridEl.innerHTML = "";
+  const hasClips = clips.length > 0;
+
+  if (containerEl === studioAiReview) {
+    containerEl.classList.remove("hidden");
+  } else {
+    containerEl.classList.toggle("hidden", !hasClips);
+  }
+  emptyEl?.classList.toggle("hidden", hasClips);
+
+  clips.forEach((clip) => {
+    const card = document.createElement("article");
+    card.className = "ai-clip-card";
+    card.dataset.clipId = clip.id;
+    card.innerHTML = `
+      <div class="ai-clip-card__media">
+        <video src="${clip.clip_url}" controls playsinline preload="metadata"></video>
+      </div>
+      <h3 class="ai-clip-card__title">${escapeHtml(clip.title)}</h3>
+      <p class="ai-clip-card__quote">${clip.quote ? `“${escapeHtml(clip.quote)}”` : ""}</p>
+      <div class="ai-clip-card__meta">
+        <span class="badge badge-teal">${escapeHtml(GROUP_LABELS[clip.group] || clip.group)}</span>
+        <span class="ai-clip-card__time">${formatTime(clip.start_seconds)} – ${formatTime(clip.end_seconds)}</span>
+      </div>
+      <div class="ai-clip-card__actions">
+        <button type="button" class="btn btn-primary" data-ai-accept>Save</button>
+        <button type="button" class="btn btn-ghost btn-reject" data-ai-reject>Reject</button>
+      </div>
+    `;
+
+    card.querySelector("[data-ai-accept]")?.addEventListener("click", () => acceptAiClip(clip.id, jobId));
+    card.querySelector("[data-ai-reject]")?.addEventListener("click", () => rejectAiClip(clip.id, jobId));
+
+    const video = card.querySelector("video");
+    patchVideoElement(video);
+    video?.addEventListener("playing", () => {
+      gridEl.querySelectorAll("video").forEach((other) => {
+        if (other !== video && !other.paused) other.pause();
+      });
+    });
+
+    gridEl.appendChild(card);
+  });
+}
+
+async function acceptAiClip(clipId, jobId) {
+  try {
+    const response = await fetch(`/api/database/clips/${clipId}/accept`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ save_local: true }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "Failed to save clip.");
+    await loadAiReview(jobId || state.studioJobId || state.currentJobId);
+    await loadLibrary();
+    showInlineStatus("Clip saved to your library.", "success");
+    showStudioStatus("Clip saved to your library.", "success");
+  } catch (error) {
+    showInlineStatus(error.message, "error");
+    showStudioStatus(error.message, "error");
+  }
+}
+
+async function rejectAiClip(clipId, jobId) {
+  try {
+    const response = await fetch(`/api/database/clips/${clipId}`, { method: "DELETE" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "Failed to reject clip.");
+    await loadAiReview(jobId || state.studioJobId || state.currentJobId);
+    await loadLibrary();
+  } catch (error) {
+    showInlineStatus(error.message, "error");
+    showStudioStatus(error.message, "error");
+  }
+}
+
 async function loadJobLogs(jobId, outputEl, containerEl) {
   if (!jobId || !outputEl) return;
   try {
@@ -584,13 +702,75 @@ async function loadLibrary() {
   const response = await fetch(`/api/library?${params.toString()}`);
   const data = await response.json();
   state.library = data.clips || [];
+  state.sources = data.sources || [];
   state.allTags = data.tags || [];
 
-  libraryCount.textContent = String(state.library.length);
-  libraryCount.classList.toggle("hidden", state.library.length === 0);
+  libraryCount.textContent = String(state.library.length + state.sources.length);
+  libraryCount.classList.toggle("hidden", state.library.length === 0 && state.sources.length === 0);
 
+  renderSources();
   renderFilters();
   renderLibrary();
+}
+
+function renderSources() {
+  if (!sourceList) return;
+  sourceList.innerHTML = "";
+  state.sources.forEach((source) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `source-row${state.selectedSourceId === source.id && state.libraryDetailMode === "source" ? " is-selected" : ""}`;
+    row.dataset.sourceId = source.id;
+    const duration = source.duration_seconds ? formatTime(source.duration_seconds) : "—";
+    row.innerHTML = `
+      <div class="source-row__icon">▶</div>
+      <div>
+        <p class="source-row__title">${escapeHtml(source.video_title || source.youtube_url || "Untitled")}</p>
+        <div class="clip-row__meta">
+          <span class="badge badge-teal">Full video</span>
+          <span class="badge badge-neutral">${duration}</span>
+        </div>
+      </div>
+    `;
+    row.addEventListener("click", () => selectSource(source));
+    sourceList.appendChild(row);
+  });
+}
+
+function selectSource(source) {
+  state.selectedSourceId = source.id;
+  state.libraryDetailMode = "source";
+  state.selectedClipId = null;
+
+  clipDetail.classList.remove("hidden");
+  clipDetailEmpty.classList.add("hidden");
+
+  detailVideo.src = `/api/jobs/${source.job_id}/source`;
+  detailGroup.textContent = "Full video";
+  detailSourceType.textContent = source.transcript_source || "imported";
+  detailTime.textContent = source.duration_seconds ? formatTime(source.duration_seconds) : "";
+  detailSaved.classList.remove("hidden");
+  detailSaved.textContent = "In database";
+  detailTitle.textContent = source.video_title || "Untitled speech";
+  detailQuote.textContent = "";
+  detailRationale.textContent = source.youtube_url || "";
+  detailSource.textContent = source.saved_at ? `Saved ${new Date(source.saved_at).toLocaleString()}` : "";
+  detailTags.innerHTML = "";
+  document.querySelector(".edit-panel")?.classList.add("hidden");
+
+  downloadClipBtn.textContent = "Download full MP4";
+  saveLocalBtn.classList.add("hidden");
+  openStudioFromDetailBtn.classList.remove("hidden");
+
+  renderSources();
+  renderLibrary();
+}
+
+function openSelectedSourceInStudio() {
+  const source = state.sources.find((item) => item.id === state.selectedSourceId);
+  if (!source) return;
+  state.studioJobId = source.job_id;
+  setView("studio");
 }
 
 function renderFilters() {
@@ -660,18 +840,34 @@ function renderLibrary() {
     clipList.appendChild(row);
   });
 
-  if (!hasClips) {
+  if (!hasClips && state.sources.length === 0) {
     clipDetail.classList.add("hidden");
     clipDetailEmpty.classList.remove("hidden");
     return;
   }
 
+  if (!hasClips && state.sources.length > 0) {
+    const selectedSource = state.sources.find((s) => s.id === state.selectedSourceId) || state.sources[0];
+    selectSource(selectedSource);
+    return;
+  }
+
+  if (state.libraryDetailMode === "source" && state.selectedSourceId) {
+    const selectedSource = state.sources.find((s) => s.id === state.selectedSourceId) || state.sources[0];
+    if (selectedSource) {
+      selectSource(selectedSource);
+      return;
+    }
+  }
+
   const selected = clips.find((clip) => clip.id === state.selectedClipId) || clips[0];
-  selectClip(selected, false);
+  if (selected) selectClip(selected, false);
 }
 
 function selectClip(clip, scrollIntoView) {
   state.selectedClipId = clip.id;
+  state.libraryDetailMode = "clip";
+  state.selectedSourceId = null;
   clipDetail.classList.remove("hidden");
   clipDetailEmpty.classList.add("hidden");
 
@@ -680,12 +876,18 @@ function selectClip(clip, scrollIntoView) {
   detailSourceType.textContent = clip.source_type === "manual" ? "Manual clip" : "AI clip";
   detailTime.textContent = `${formatTime(clip.start_seconds)} – ${formatTime(clip.end_seconds)}`;
   detailSaved.classList.toggle("hidden", !clip.saved_at);
+  detailSaved.textContent = "Saved locally";
   detailTitle.textContent = clip.title;
   detailQuote.textContent = clip.quote ? `“${clip.quote}”` : "";
   detailRationale.textContent = clip.rationale || "";
   detailSource.textContent = clip.video_title ? `Source: ${clip.video_title}` : "";
   editTitle.value = clip.title;
   editTags.value = (clip.tags || []).join(", ");
+
+  document.querySelector(".edit-panel")?.classList.remove("hidden");
+  downloadClipBtn.textContent = "Download MP4";
+  saveLocalBtn.classList.remove("hidden");
+  openStudioFromDetailBtn.classList.add("hidden");
 
   detailTags.innerHTML = "";
   (clip.tags || []).forEach((tag) => {
@@ -696,14 +898,21 @@ function selectClip(clip, scrollIntoView) {
   });
 
   clipList.querySelectorAll(".clip-row").forEach((row) => {
-    row.classList.toggle("is-selected", row.dataset.clipId === clip.id);
+    row.classList.toggle("is-selected", state.libraryDetailMode === "clip" && row.dataset.clipId === clip.id);
     if (row.dataset.clipId === clip.id && scrollIntoView) {
       row.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   });
+  renderSources();
 }
 
 async function downloadSelectedClip() {
+  if (state.libraryDetailMode === "source") {
+    const source = state.sources.find((item) => item.id === state.selectedSourceId);
+    if (!source) return;
+    window.open(`/api/database/sources/${source.id}/download`, "_blank");
+    return;
+  }
   const clip = state.library.find((item) => item.id === state.selectedClipId);
   if (!clip) return;
   window.open(`/api/database/clips/${clip.id}/download`, "_blank");
@@ -793,6 +1002,21 @@ function formatTime(seconds) {
 
 function formatDuration(start, end) {
   return `${Math.max(1, Math.round(Number(end) - Number(start)))}s`;
+}
+
+function patchVideoElement(video) {
+  if (!video || video.dataset.playPatched) return;
+  video.dataset.playPatched = "true";
+  const nativePlay = video.play.bind(video);
+  video.play = () =>
+    nativePlay().catch((error) => {
+      if (error.name !== "AbortError") console.warn("Video play failed:", error);
+    });
+}
+
+function safePlay(video) {
+  if (!video) return;
+  video.play();
 }
 
 function escapeHtml(value) {

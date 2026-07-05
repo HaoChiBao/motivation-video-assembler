@@ -12,7 +12,7 @@ from typing import Any
 from backend.config import CLIPS_DIR, JOBS_DIR
 from backend.services.analyzer import AnalysisError, analyze_moments
 from backend.services.clipper import VideoError, download_video, extract_clip, get_video_duration, get_source_video_path
-from backend.services.database import delete_clips_for_job, register_clip, save_clip_to_disk
+from backend.services.database import delete_clips_for_job, register_clip, save_clip_to_disk, save_source_to_disk
 from backend.services.job_logs import log_job
 from backend.services.transcript import (
     TranscriptError,
@@ -49,6 +49,8 @@ def create_job(youtube_url: str, *, auto_analyze: bool = True) -> dict[str, Any]
         "source_video_path": None,
         "analysis": None,
         "analysis_error": None,
+        "duration_seconds": None,
+        "source_saved_at": None,
         "clips": [],
         "auto_analyze": auto_analyze,
     }
@@ -129,6 +131,7 @@ def create_manual_clip(
             "moment_id": moment_id,
             "video_title": job.get("video_title"),
             "youtube_url": job.get("youtube_url"),
+            "review_status": "accepted",
         }
     )
     clip["id"] = db_entry["id"]
@@ -139,6 +142,18 @@ def create_manual_clip(
         db_entry = save_clip_to_disk(db_entry["id"])
 
     return {**clip, "database_id": db_entry["id"], "saved_at": db_entry.get("saved_at")}
+
+
+def remove_clip_from_job(job_id: str, clip_id: str) -> bool:
+    job = get_job(job_id)
+    if not job:
+        return False
+    clips = list(job.get("clips") or [])
+    kept = [clip for clip in clips if clip.get("id") != clip_id]
+    if len(kept) == len(clips):
+        return False
+    _update(job_id, clips=kept)
+    return True
 
 
 def get_job(job_id: str) -> dict[str, Any] | None:
@@ -211,10 +226,25 @@ def _run_pipeline(job_id: str) -> None:
             transcript_source=transcript_source,
             transcript=segments_to_dicts(segments),
             source_video_path=str(source_video),
+            duration_seconds=duration,
             status="prepared",
             stage="prepared",
             progress=50,
         )
+
+        job = get_job(job_id) or {}
+        try:
+            source_record = save_source_to_disk(job_id, job=job)
+            _update(job_id, source_saved_at=source_record.get("saved_at"))
+            log_job(
+                job_id,
+                "info",
+                "source_saved",
+                "Full source video saved to database",
+                details={"path": source_record.get("local_path")},
+            )
+        except (OSError, FileNotFoundError) as exc:
+            log_job(job_id, "warning", "source_save_failed", str(exc))
 
         if job.get("auto_analyze", True):
             _run_ai_pass(job_id, transcript_text=transcript_text, duration=duration)
@@ -311,6 +341,7 @@ def _run_ai_pass(
                     "moment_id": moment["id"],
                     "video_title": job.get("video_title"),
                     "youtube_url": job.get("youtube_url"),
+                    "review_status": "pending",
                 }
             )
             clip["id"] = db_entry["id"]

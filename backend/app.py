@@ -13,13 +13,18 @@ from pydantic import BaseModel, Field
 from backend.config import CLIPS_DIR, DATABASE_CLIPS_DIR, LOGS_DIR, ROOT_DIR, settings
 from backend.services.clipper import get_source_video_path
 from backend.services.database import (
+    accept_clip,
     all_tags,
     delete_clip,
     get_clip,
     get_saved_clip_path,
+    get_saved_source_path,
+    get_source,
     list_clips,
+    list_sources,
     register_clip,
     save_clip_to_disk,
+    save_source_to_disk,
     update_clip,
 )
 from backend.services.job_logs import configure_logging, get_job_logs, list_recent_logs
@@ -29,6 +34,7 @@ from backend.services.pipeline import (
     get_job,
     list_jobs,
     list_studio_jobs,
+    remove_clip_from_job,
     run_ai_analysis,
 )
 
@@ -72,6 +78,10 @@ class ClipUpdateRequest(BaseModel):
 
 class AiAnalysisRequest(BaseModel):
     replace_existing: bool = True
+
+
+class AcceptClipRequest(BaseModel):
+    save_local: bool = True
 
 
 @app.get("/api/health")
@@ -171,6 +181,21 @@ def trigger_ai_analysis(job_id: str, payload: AiAnalysisRequest | None = None) -
     return {"job_id": job_id, "status": "running", "replace_existing": replace_existing}
 
 
+@app.get("/api/jobs/{job_id}/ai-review")
+def job_ai_review(job_id: str) -> dict:
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    clips = list_clips(job_id=job_id, source_type="ai", review_status="pending")
+    return {
+        "job_id": job_id,
+        "video_title": job.get("video_title"),
+        "clips": clips,
+        "pending_count": len(clips),
+    }
+
+
 @app.post("/api/jobs/{job_id}/clips")
 def add_manual_clip(job_id: str, payload: ManualClipRequest) -> dict:
     try:
@@ -199,7 +224,13 @@ def library(
     source_type: str = Query(default=""),
 ) -> dict:
     clips = list_clips(query=q, group=group, tag=tag, source_type=source_type)
-    return {"clips": clips, "groups": _group_labels(), "tags": all_tags()}
+    sources = list_sources(query=q)
+    return {
+        "clips": clips,
+        "sources": sources,
+        "groups": _group_labels(),
+        "tags": all_tags(),
+    }
 
 
 @app.get("/api/database/clips/{clip_id}")
@@ -219,6 +250,16 @@ def patch_clip(clip_id: str, payload: ClipUpdateRequest) -> dict:
     return {"clip": clip}
 
 
+@app.post("/api/database/clips/{clip_id}/accept")
+def accept_database_clip(clip_id: str, payload: AcceptClipRequest | None = None) -> dict:
+    save_local = payload.save_local if payload else True
+    try:
+        clip = accept_clip(clip_id, save_local=save_local)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"clip": clip, "message": "Clip saved to your library."}
+
+
 @app.post("/api/database/clips/{clip_id}/save")
 def save_clip_local(clip_id: str) -> dict:
     try:
@@ -228,10 +269,51 @@ def save_clip_local(clip_id: str) -> dict:
     return {"clip": clip, "message": "Clip saved to local database folder."}
 
 
+@app.get("/api/database/sources/{source_id}")
+def database_source_detail(source_id: str) -> dict:
+    source = get_source(source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source video not found.")
+    return {"source": source}
+
+
+@app.post("/api/jobs/{job_id}/save-source")
+def save_job_source(job_id: str) -> dict:
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    if not job.get("transcript"):
+        raise HTTPException(status_code=400, detail="Job has no source video yet.")
+    try:
+        source = save_source_to_disk(job_id, job=job)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"source": source, "message": "Full video saved to database."}
+
+
+@app.get("/api/database/sources/{source_id}/download")
+def download_saved_source(source_id: str) -> FileResponse:
+    source = get_source(source_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Source video not found.")
+
+    saved = get_saved_source_path(source_id)
+    if not saved:
+        raise HTTPException(status_code=404, detail="Source video file not found.")
+
+    filename = f"{_safe_filename(source.get('video_title') or source_id)}.mp4"
+    return FileResponse(saved, media_type="video/mp4", filename=filename)
+
+
 @app.delete("/api/database/clips/{clip_id}")
 def remove_clip(clip_id: str) -> dict:
+    clip = get_clip(clip_id)
+    if not clip:
+        raise HTTPException(status_code=404, detail="Clip not found.")
     if not delete_clip(clip_id):
         raise HTTPException(status_code=404, detail="Clip not found.")
+    if clip.get("job_id"):
+        remove_clip_from_job(clip["job_id"], clip_id)
     return {"deleted": clip_id}
 
 

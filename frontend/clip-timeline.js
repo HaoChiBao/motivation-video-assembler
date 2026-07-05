@@ -1,7 +1,6 @@
 /**
- * ClipTimeline — dual-bar video scrubber with clip in/out selection.
- * Main track: playback progress + highlighted clip region.
- * Sub track: draggable clip start/end handles.
+ * ClipTimeline — stacked video scrubber with clip in/out selection.
+ * Main track: playback progress. Clip range sits directly on top (lavender band only).
  */
 class ClipTimeline {
   constructor(root, { video, onRangeChange, onSeek } = {}) {
@@ -19,10 +18,10 @@ class ClipTimeline {
       current: root.querySelector("[data-tl-current]"),
       total: root.querySelector("[data-tl-total]"),
       clipMeta: root.querySelector("[data-tl-clip-meta]"),
+      stack: root.querySelector("[data-tl-stack]"),
       mainTrack: root.querySelector('[data-track="main"]'),
       clipTrack: root.querySelector('[data-track="clip"]'),
       played: root.querySelector("[data-tl-played]"),
-      clipRegion: root.querySelector("[data-tl-clip-region]"),
       playhead: root.querySelector("[data-tl-playhead]"),
       range: root.querySelector("[data-tl-range]"),
       rangeFill: root.querySelector("[data-tl-range-fill]"),
@@ -75,10 +74,6 @@ class ClipTimeline {
     if (this._els.startInput) this._els.startInput.value = ClipTimeline.formatTime(this.start);
     if (this._els.endInput) this._els.endInput.value = ClipTimeline.formatTime(this.end);
 
-    if (this._els.clipRegion) {
-      this._els.clipRegion.style.left = `${startPct}%`;
-      this._els.clipRegion.style.width = `${Math.max(endPct - startPct, 0)}%`;
-    }
     if (this._els.range) {
       this._els.range.style.left = `${startPct}%`;
       this._els.range.style.width = `${Math.max(endPct - startPct, 0)}%`;
@@ -123,8 +118,14 @@ class ClipTimeline {
       this.setRange(this.start, Math.max(end, this.start + this.minGap));
     });
 
-    this._els.mainTrack?.addEventListener("pointerdown", (event) => this._onTrackPointerDown(event, "main"));
-    this._els.clipTrack?.addEventListener("pointerdown", (event) => this._onTrackPointerDown(event, "clip"));
+    this._els.stack?.addEventListener("pointerdown", (event) => {
+      if (event.target.closest("[data-tl-range-fill]") || event.target.closest("[data-handle]")) return;
+      if (event.target.closest("[data-tl-range]")) {
+        this._onTrackPointerDown(event, "clip");
+        return;
+      }
+      this._onTrackPointerDown(event, "main");
+    });
 
     this._els.handleStart?.addEventListener("pointerdown", (event) => this._onHandlePointerDown(event, "start"));
     this._els.handleEnd?.addEventListener("pointerdown", (event) => this._onHandlePointerDown(event, "end"));
@@ -136,22 +137,51 @@ class ClipTimeline {
 
   _previewRange() {
     if (!this.video) return;
-    this.video.currentTime = this.start;
-    this.video.play();
+    this._stopPreview();
+
+    const video = this.video;
     const stopAt = this.end;
+
     const onTime = () => {
-      if (this.video.currentTime >= stopAt) {
-        this.video.pause();
-        this.video.removeEventListener("timeupdate", onTime);
+      if (video.currentTime >= stopAt) {
+        video.pause();
+        this._stopPreview();
       }
     };
-    this.video.addEventListener("timeupdate", onTime);
+
+    const startPlayback = () => {
+      ClipTimeline._safePlay(video);
+      video.addEventListener("timeupdate", onTime);
+    };
+
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      startPlayback();
+    };
+
+    this._previewStop = () => {
+      video.removeEventListener("timeupdate", onTime);
+      video.removeEventListener("seeked", onSeeked);
+      this._previewStop = null;
+    };
+
+    video.pause();
+    video.addEventListener("seeked", onSeeked);
+    video.currentTime = this.start;
+    if (!video.seeking) onSeeked();
+  }
+
+  _stopPreview() {
+    if (this._previewStop) this._previewStop();
   }
 
   _togglePlay() {
     if (!this.video) return;
-    if (this.video.paused) this.video.play();
-    else this.video.pause();
+    if (this.video.paused) ClipTimeline._safePlay(this.video);
+    else {
+      this._stopPreview();
+      this.video.pause();
+    }
   }
 
   _syncPlayButton(isPlaying) {
@@ -162,54 +192,56 @@ class ClipTimeline {
   _onTrackPointerDown(event, track) {
     if (!this.duration) return;
     event.preventDefault();
-    const trackEl = track === "main" ? this._els.mainTrack : this._els.clipTrack;
-    const time = this._timeFromClientX(event.clientX, trackEl);
+    const captureEl = this._els.stack || this._els.mainTrack;
+    const time = this._timeFromClientX(event.clientX);
     if (track === "main") {
       this._seek(time);
-      this._drag = { type: "seek", trackEl };
+      this._drag = { type: "seek", trackEl: captureEl };
     } else {
       const distStart = Math.abs(time - this.start);
       const distEnd = Math.abs(time - this.end);
       if (distStart <= distEnd) {
         this.setRange(time, Math.max(this.end, time + this.minGap));
-        this._drag = { type: "start", trackEl: this._els.clipTrack };
+        this._drag = { type: "start", trackEl: captureEl };
       } else {
         this.setRange(this.start, Math.max(time, this.start + this.minGap));
-        this._drag = { type: "end", trackEl: this._els.clipTrack };
+        this._drag = { type: "end", trackEl: captureEl };
       }
     }
-    trackEl.setPointerCapture(event.pointerId);
-    trackEl.addEventListener("pointermove", this._onPointerMove);
-    trackEl.addEventListener("pointerup", this._onPointerUp);
-    trackEl.addEventListener("pointercancel", this._onPointerUp);
+    captureEl.setPointerCapture(event.pointerId);
+    captureEl.addEventListener("pointermove", this._onPointerMove);
+    captureEl.addEventListener("pointerup", this._onPointerUp);
+    captureEl.addEventListener("pointercancel", this._onPointerUp);
   }
 
   _onHandlePointerDown(event, edge) {
     if (!this.duration) return;
     event.preventDefault();
     event.stopPropagation();
-    this._drag = { type: edge, trackEl: this._els.clipTrack };
-    this._els.clipTrack.setPointerCapture(event.pointerId);
-    this._els.clipTrack.addEventListener("pointermove", this._onPointerMove);
-    this._els.clipTrack.addEventListener("pointerup", this._onPointerUp);
-    this._els.clipTrack.addEventListener("pointercancel", this._onPointerUp);
+    const captureEl = this._els.stack || this._els.clipTrack;
+    this._drag = { type: edge, trackEl: captureEl };
+    captureEl.setPointerCapture(event.pointerId);
+    captureEl.addEventListener("pointermove", this._onPointerMove);
+    captureEl.addEventListener("pointerup", this._onPointerUp);
+    captureEl.addEventListener("pointercancel", this._onPointerUp);
   }
 
   _onRangeBodyPointerDown(event) {
     if (!this.duration) return;
     event.preventDefault();
     event.stopPropagation();
-    const time = this._timeFromClientX(event.clientX, this._els.clipTrack);
+    const captureEl = this._els.stack || this._els.clipTrack;
+    const time = this._timeFromClientX(event.clientX);
     this._drag = {
       type: "move",
-      trackEl: this._els.clipTrack,
+      trackEl: captureEl,
       offset: time - this.start,
       span: this.end - this.start,
     };
-    this._els.clipTrack.setPointerCapture(event.pointerId);
-    this._els.clipTrack.addEventListener("pointermove", this._onPointerMove);
-    this._els.clipTrack.addEventListener("pointerup", this._onPointerUp);
-    this._els.clipTrack.addEventListener("pointercancel", this._onPointerUp);
+    captureEl.setPointerCapture(event.pointerId);
+    captureEl.addEventListener("pointermove", this._onPointerMove);
+    captureEl.addEventListener("pointerup", this._onPointerUp);
+    captureEl.addEventListener("pointercancel", this._onPointerUp);
   }
 
   _onPointerMove = (event) => {
@@ -252,7 +284,8 @@ class ClipTimeline {
     this.onSeek(clamped);
   }
 
-  _timeFromClientX(clientX, trackEl) {
+  _timeFromClientX(clientX) {
+    const trackEl = this._els.stack || this._els.mainTrack;
     const rect = trackEl.getBoundingClientRect();
     const ratio = this._clamp((clientX - rect.left) / rect.width, 0, 1);
     return ratio * (this.duration || 1);
@@ -260,6 +293,16 @@ class ClipTimeline {
 
   _clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+  }
+
+  static _safePlay(video) {
+    if (!video) return;
+    const result = video.play();
+    if (result?.catch) {
+      result.catch((error) => {
+        if (error.name !== "AbortError") console.warn("Video play failed:", error);
+      });
+    }
   }
 
   static formatTime(seconds) {

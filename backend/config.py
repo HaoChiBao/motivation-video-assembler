@@ -11,6 +11,7 @@ CLIPS_DIR = DATA_DIR / "clips"
 VIDEOS_DIR = DATA_DIR / "videos"
 DATABASE_DIR = DATA_DIR / "database"
 DATABASE_CLIPS_DIR = DATABASE_DIR / "clips"
+DATABASE_VIDEOS_DIR = DATABASE_DIR / "videos"
 DATABASE_INDEX = DATABASE_DIR / "index.json"
 LOGS_DIR = DATA_DIR / "logs"
 
@@ -36,5 +37,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-for directory in (DATA_DIR, JOBS_DIR, CLIPS_DIR, VIDEOS_DIR, DATABASE_DIR, DATABASE_CLIPS_DIR, LOGS_DIR):
+for directory in (DATA_DIR, JOBS_DIR, CLIPS_DIR, VIDEOS_DIR, DATABASE_DIR, DATABASE_CLIPS_DIR, DATABASE_VIDEOS_DIR, LOGS_DIR):
     directory.mkdir(parents=True, exist_ok=True)

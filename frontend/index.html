@@ -95,8 +95,17 @@
               <li class="pipeline-step" data-stage="done"><span class="step-indicator"></span><span class="step-copy"><span class="step-label">Complete</span><span class="step-detail">Saved to database</span></span></li>
             </ol>
             <div id="pipeline-actions" class="pipeline-actions hidden">
-              <button id="open-studio-btn" class="btn btn-primary" type="button">Open in Studio</button>
+              <button id="open-studio-btn" class="btn btn-primary" type="button">Review AI clips</button>
               <button id="open-library-btn" class="btn btn-secondary" type="button">View database</button>
+            </div>
+            <div id="pipeline-ai-review" class="ai-review hidden">
+              <div class="ai-review__head">
+                <p class="eyebrow">AI suggestions</p>
+                <h3 class="card-title">Review clips before saving</h3>
+                <p class="ai-review__copy">Preview each suggestion below. Save the ones you want — rejected clips are removed.</p>
+              </div>
+              <div id="pipeline-ai-grid" class="ai-clip-grid"></div>
+              <p id="pipeline-ai-review-empty" class="ai-review__empty hidden">All suggestions reviewed.</p>
             </div>
             <div id="pipeline-logs" class="job-logs hidden">
               <div class="job-logs__head">
@@ -131,64 +140,63 @@
 
           <div id="studio-workspace" class="studio-workspace hidden">
             <div class="studio-main card">
-              <div class="studio-video-wrap surface-dark">
-                <video id="studio-video" playsinline preload="metadata"></video>
-              </div>
+              <div id="studio-clip-timeline" class="clip-timeline">
+                <div class="studio-video-wrap surface-dark">
+                  <video id="studio-video" playsinline preload="metadata"></video>
 
-              <div id="studio-clip-timeline" class="clip-timeline" aria-label="Video clipping timeline">
-                <div class="clip-timeline__header">
-                  <button type="button" class="clip-timeline__play btn btn-ghost" data-tl-play aria-label="Play video">Play</button>
-                  <div class="clip-timeline__readout">
-                    <span class="clip-timeline__readout-label">Now</span>
-                    <span class="clip-timeline__readout-value" data-tl-current>0:00</span>
-                  </div>
-                  <div class="clip-timeline__readout clip-timeline__readout--clip">
-                    <span class="clip-timeline__readout-label">Selection</span>
-                    <span class="clip-timeline__readout-value" data-tl-clip-meta>0:00 – 0:15 · 15s</span>
-                  </div>
-                  <div class="clip-timeline__readout clip-timeline__readout--end">
-                    <span class="clip-timeline__readout-label">Duration</span>
-                    <span class="clip-timeline__readout-value" data-tl-total>0:00</span>
-                  </div>
-                </div>
-
-                <div class="clip-timeline__row">
-                  <span class="clip-timeline__label">Timeline</span>
-                  <div class="clip-timeline__track clip-timeline__track--main" data-track="main">
-                    <div class="clip-timeline__track-bg"></div>
-                    <div class="clip-timeline__played" data-tl-played></div>
-                    <div class="clip-timeline__clip-region" data-tl-clip-region></div>
-                    <div class="clip-timeline__playhead" data-tl-playhead></div>
-                  </div>
-                </div>
-
-                <div class="clip-timeline__row">
-                  <span class="clip-timeline__label">Clip range</span>
-                  <div class="clip-timeline__track clip-timeline__track--clip" data-track="clip">
-                    <div class="clip-timeline__track-bg"></div>
-                    <div class="clip-timeline__range" data-tl-range>
-                      <div class="clip-timeline__range-fill" data-tl-range-fill></div>
-                      <button type="button" class="clip-timeline__handle clip-timeline__handle--start" data-handle="start" aria-label="Clip start"></button>
-                      <button type="button" class="clip-timeline__handle clip-timeline__handle--end" data-handle="end" aria-label="Clip end"></button>
+                  <div class="clip-timeline__overlay" aria-label="Video timeline">
+                    <div class="clip-timeline__tracks">
+                      <div class="clip-timeline__stack" data-tl-stack>
+                        <div class="clip-timeline__track clip-timeline__track--main" data-track="main">
+                          <div class="clip-timeline__track-bg"></div>
+                          <div class="clip-timeline__played" data-tl-played></div>
+                          <div class="clip-timeline__playhead" data-tl-playhead></div>
+                        </div>
+                        <div class="clip-timeline__clip-layer" data-track="clip">
+                          <div class="clip-timeline__range" data-tl-range>
+                            <div class="clip-timeline__range-fill" data-tl-range-fill></div>
+                            <button type="button" class="clip-timeline__handle clip-timeline__handle--start" data-handle="start" aria-label="Clip start"></button>
+                            <button type="button" class="clip-timeline__handle clip-timeline__handle--end" data-handle="end" aria-label="Clip end"></button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div class="clip-timeline__footer">
-                  <div class="clip-timeline__inputs">
-                    <label class="clip-timeline__input-label">
-                      In
-                      <input class="time-input" data-tl-start-input type="text" value="0:00" spellcheck="false" />
-                    </label>
-                    <label class="clip-timeline__input-label">
-                      Out
-                      <input class="time-input" data-tl-end-input type="text" value="0:15" spellcheck="false" />
-                    </label>
+                <div class="clip-timeline__controls">
+                  <div class="clip-timeline__header">
+                    <button type="button" class="clip-timeline__play btn btn-ghost" data-tl-play aria-label="Play video">Play</button>
+                    <div class="clip-timeline__readout">
+                      <span class="clip-timeline__readout-label">Now</span>
+                      <span class="clip-timeline__readout-value" data-tl-current>0:00</span>
+                    </div>
+                    <div class="clip-timeline__readout clip-timeline__readout--clip">
+                      <span class="clip-timeline__readout-label">Selection</span>
+                      <span class="clip-timeline__readout-value" data-tl-clip-meta>0:00 – 0:15 · 15s</span>
+                    </div>
+                    <div class="clip-timeline__readout clip-timeline__readout--end">
+                      <span class="clip-timeline__readout-label">Duration</span>
+                      <span class="clip-timeline__readout-value" data-tl-total>0:00</span>
+                    </div>
                   </div>
-                  <div class="clip-timeline__actions">
-                    <button class="btn btn-ghost" data-tl-set-start type="button">Set in</button>
-                    <button class="btn btn-ghost" data-tl-set-end type="button">Set out</button>
-                    <button class="btn btn-ghost" data-tl-preview type="button">Preview clip</button>
+
+                  <div class="clip-timeline__footer">
+                    <div class="clip-timeline__inputs">
+                      <label class="clip-timeline__input-label">
+                        In
+                        <input class="time-input" data-tl-start-input type="text" value="0:00" spellcheck="false" />
+                      </label>
+                      <label class="clip-timeline__input-label">
+                        Out
+                        <input class="time-input" data-tl-end-input type="text" value="0:15" spellcheck="false" />
+                      </label>
+                    </div>
+                    <div class="clip-timeline__actions">
+                      <button class="btn btn-ghost" data-tl-set-start type="button">Set in</button>
+                      <button class="btn btn-ghost" data-tl-set-end type="button">Set out</button>
+                      <button class="btn btn-ghost" data-tl-preview type="button">Preview clip</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -241,6 +249,16 @@
                 <pre id="studio-log-output" class="log-output" aria-live="polite"></pre>
               </div>
             </aside>
+
+            <div id="studio-ai-review" class="studio-ai-review card hidden">
+              <div class="ai-review__head">
+                <p class="eyebrow">AI suggestions</p>
+                <h2 class="card-title">Review clips</h2>
+                <p class="ai-review__copy">Preview each AI suggestion for this video. Save the keepers or reject the rest.</p>
+              </div>
+              <div id="studio-ai-grid" class="ai-clip-grid"></div>
+              <p id="studio-ai-review-empty" class="ai-review__empty hidden">No pending AI clips for this video.</p>
+            </div>
           </div>
         </section>
 
@@ -250,7 +268,7 @@
               <span class="display-muted">Motivation</span>
               <span class="display-strong">clip database</span>
             </h1>
-            <p class="view-subtitle">Search, filter, preview, and download indexed clips from your local library.</p>
+            <p class="view-subtitle">Search, preview, and download full source videos and clips from your local library.</p>
           </div>
 
           <div class="library-shell">
@@ -264,6 +282,15 @@
               </div>
 
               <input id="library-search" class="text-input" type="search" placeholder="Search title, quote, tags…" />
+
+              <div class="library-section">
+                <p class="eyebrow">Full videos</p>
+                <div id="source-list" class="source-list" role="list"></div>
+              </div>
+
+              <div class="library-section">
+                <p class="eyebrow">Clips</p>
+              </div>
 
               <div id="group-filters" class="filter-pills"></div>
               <div id="tag-filters" class="filter-pills"></div>
@@ -297,6 +324,7 @@
                 <div class="detail-actions">
                   <button id="download-clip-btn" class="btn btn-primary" type="button">Download MP4</button>
                   <button id="save-local-btn" class="btn btn-secondary" type="button">Save to folder</button>
+                  <button id="open-studio-from-detail-btn" class="btn btn-ghost hidden" type="button">Open in Studio</button>
                 </div>
 
                 <div class="edit-panel">
